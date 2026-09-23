@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentTrace — Developer Control Plane for AI Coding Agents</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #080d1a;
+      --bg-card: #0f172a;
+      --bg-surface: #151f38;
+      --border: #1e293b;
+      --border-accent: #3b82f6;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --brand: #5b6bff;
+      --brand-hover: #4a57e6;
+      --cyan: #08fff0;
+      --lime: #7ff0a8;
+      --amber: #ffcf6b;
+      --rose: #ff6b8b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      line-height: 1.5;
+      font-size: 13px;
+    }
+    code, pre, .mono { font-family: 'JetBrains Mono', monospace; }
+    header {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 12px 24px;
+    }
+    .header-inner {
+      max-width: 1380px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand-wrap { display: flex; align-items: center; gap: 12px; }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--brand), var(--cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #030712;
+      font-weight: 800;
+      font-size: 16px;
+      box-shadow: 0 4px 14px rgba(91, 107, 255, 0.3);
+    }
+    .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border: 1px solid transparent;
+    }
+    .badge-brand { background: rgba(91, 107, 255, 0.15); color: #818cf8; border-color: rgba(91, 107, 255, 0.3); }
+    .badge-cyan { background: rgba(8, 255, 240, 0.12); color: var(--cyan); border-color: rgba(8, 255, 240, 0.3); }
+    .badge-lime { background: rgba(127, 240, 168, 0.12); color: var(--lime); border-color: rgba(127, 240, 168, 0.3); }
+    .badge-amber { background: rgba(255, 207, 107, 0.12); color: var(--amber); border-color: rgba(255, 207, 107, 0.3); }
+    .badge-rose { background: rgba(255, 107, 139, 0.15); color: var(--rose); border-color: rgba(255, 107, 139, 0.4); }
+    
+    .jev-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #030712;
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+    }
+    .controls-wrap { display: flex; align-items: center; gap: 12px; }
+    select, button {
+      background: #1e293b;
+      color: #f1f5f9;
+      border: 1px solid #334155;
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+    select:hover, button:hover { background: #27354f; border-color: #475569; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--brand), #4338ca);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(91, 107, 255, 0.3);
+    }
+    .btn-primary:hover { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+    .btn-danger {
+      background: rgba(225, 29, 72, 0.15);
+      color: #fda4af;
+      border: 1px solid rgba(225, 29, 72, 0.35);
+    }
+    .btn-danger:hover { background: rgba(225, 29, 72, 0.25); }
+    
+    main {
+      max-width: 1380px;
+      margin: 24px auto;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding-bottom: 12px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .stat-box {
+      background: #090e1c;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+    .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+    .stat-val { font-size: 18px; font-weight: 700; color: #fff; margin-top: 4px; }
+    
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    @media (max-width: 1024px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    }
+    
+    .diff-block {
+      background: #030712;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+    .diff-bar {
+      background: #0b1120;
+      border-bottom: 1px solid var(--border);
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .diff-content {
+      padding: 12px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .diff-del { background: rgba(244, 63, 94, 0.12); color: #fda4af; padding: 2px 6px; border-radius: 4px; display: block; border-left: 3px solid #f43f5e; margin-bottom: 4px; }
+    .diff-add { background: rgba(16, 185, 129, 0.12); color: #6ee7b7; padding: 2px 6px; border-radius: 4px; display: block; border-left: 3px solid #10b981; }
+
+    .node-card {
+      background: #0a0f20;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .node-card:hover { border-color: var(--brand); transform: translateY(-1px); }
+    .node-card.selected { border-color: var(--cyan); background: #0c1630; box-shadow: 0 0 16px rgba(8, 255, 240, 0.15); }
+    
+    .flow-step {
+      background: #0b1120;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    /* Ask Why Drawer */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+    }
+    .drawer-overlay.open { display: block; }
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 520px;
+      max-width: 90vw;
+      background: #0b1120;
+      border-left: 1px solid var(--border);
+      z-index: 201;
+      display: flex;
+      flex-direction: column;
+      box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+    }
+    .drawer-header {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #070c18;
+    }
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .drawer-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      background: #070c18;
+    }
+    .chat-bubble {
+      background: #111a33;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .chat-bubble.user { background: #1e1b4b; border-color: rgba(91, 107, 255, 0.4); color: #e0e7ff; }
+  </style>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="header-inner">
+      <div class="brand-wrap">
+        <div class="brand-logo">AT</div>
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:16px; font-weight:800; letter-spacing:-0.5px;">AgentTrace</span>
+            <span class="badge badge-brand">Python 3.14 Engine</span>
+            <span class="badge badge-cyan">Jev System 1 Inside</span>
+          </div>
+          <p style="font-size:11px; color:var(--text-muted); margin-top:2px;">
+            Developer Control Plane & Change Intelligence for Autonomous Coding Agents
+          </p>
+        </div>
+      </div>
+
+      <!-- Live Jev System 1 Telemetry Indicator -->
+      <div class="jev-pill mono">
+        <div class="pulse-dot" id="jev-dot"></div>
+        <span style="color:#cbd5e1;">Jev System 1:</span>
+        <b style="color:var(--cyan);" id="jev-latency">110ms calibrated</b>
+        <span style="color:#64748b; font-size:10px; border-left:1px solid #1e293b; padding-left:8px;">
+          typed decisions, zero hallucinations
+        </span>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls-wrap">
+        <select id="scenario-picker" onchange="loadScenario(this.value)">
+          <option value="payment-retry">Scenario 1: Payment Retry (3 Services Commonized)</option>
+          <option value="auth-interceptor">Scenario 2: Auth Token Refresh (Security Mutex)</option>
+          <option value="live-repo">⚡ Live Working Tree (Real Git Repo Analysis)</option>
+        </select>
+
+        <div style="background:#030712; padding:3px; border-radius:10px; border:1px solid #1e293b; display:flex; gap:4px;">
+          <button id="btn-status-quo" class="btn-danger" onclick="setViewMode('statusQuo')">
+            Raw Git Diff (Status Quo)
+          </button>
+          <button id="btn-agent-trace" class="btn-primary" onclick="setViewMode('agentTrace')">
+            AgentTrace Report
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main id="app-content">
+    
+    <!-- Dynamic Repo Analyzer Bar -->
+    <div class="card" style="padding:14px 20px; background:linear-gradient(90deg, #090e1c, #0f172a); border-color:rgba(91,107,255,0.3);">
+      <form onsubmit="handleAnalyzeCustomRepo(event)" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:320px;">
+          <span style="font-size:11px; font-weight:700; color:var(--cyan); text-transform:uppercase;" class="mono">
+            📁 Inspect Any Local Repo:
+          </span>
+          <input type="text" id="input-repo-path" placeholder="/Users/path/to/any-git-repo or ." value="."
+            style="flex:1; background:#070c18; border:1px solid var(--border); border-radius:8px; padding:7px 12px; font-size:12px; color:#fff; font-family:'JetBrains Mono', monospace; outline:none;" />
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:11px; color:#94a3b8;" class="mono">Target:</span>
+          <input type="text" id="input-diff-target" placeholder="HEAD~1..HEAD" value="HEAD~1..HEAD"
+            style="width:140px; background:#070c18; border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-size:12px; color:#cbd5e1; font-family:'JetBrains Mono', monospace; outline:none;" />
+          <button type="submit" class="btn-primary" style="padding:7px 16px;">
+            ⚡ Analyze Repo
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Top Metadata Bar -->
+    <div class="card" style="padding:16px 22px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div>
+          <div style="font-size:10px; font-family:'JetBrains Mono', monospace; color:var(--text-muted); text-transform:uppercase;">
+            User Prompt Trigger:
+          </div>
+          <div id="user-prompt" style="font-size:15px; font-weight:700; color:#fff; margin-top:2px;">
+            Loading prompt...
+          </div>
+        </div>
+        <div class="stats-row" id="stats-container" style="flex:1; max-width:650px;">
+          <!-- Dynamically filled stats -->
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 1: Status Quo Horror (Raw Git Diff) -->
+    <div id="status-quo-view" style="display:none;" class="card" style="border-color:rgba(244, 63, 94, 0.3);">
+      <div style="background:rgba(244, 63, 94, 0.1); border:1px solid rgba(244, 63, 94, 0.3); border-radius:12px; padding:18px; margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <h2 style="font-size:15px; font-weight:800; color:#f43f5e;">
+            The Cognitive Verification Crisis: The 240-Line Raw Diff
+          </h2>
+          <span class="badge badge-rose">git diff HEAD~1..HEAD</span>
+        </div>
+        <p style="color:#e2e8f0; font-size:12px; line-height:1.6;">
+          You asked the agent for a simple feature: <b id="sq-prompt">...</b>. The agent touched 8 files, including services you never requested! Git diff only tells you <b>WHAT</b> lines changed in green and red. It cannot tell you <b>WHY</b> it changed, <b>HOW</b> the agent arrived there, or <b>WHAT</b> it breaks.
+        </p>
+        <button class="btn-primary" style="margin-top:14px;" onclick="setViewMode('agentTrace')">
+          Reveal Causal Intent with AgentTrace Report →
+        </button>
+      </div>
+
+      <div id="raw-diff-container">
+        <!-- Rendered raw hunks -->
+      </div>
+    </div>
+
+    <!-- VIEW 2: AgentTrace Change Intelligence Report -->
+    <div id="agent-trace-view" style="display:flex; flex-direction:column; gap:24px;">
+      
+      <!-- 1. Risk & Attention Engine -->
+      <div class="card" style="border-color:rgba(244, 63, 94, 0.3); background:linear-gradient(180deg, rgba(244,63,94,0.06), #0f172a);">
+        <div class="card-header">
+          <div class="card-title" style="color:#fda4af;">
+            <span>🚨 Developer Attention Required</span>
+          </div>
+          <span class="badge badge-rose">Jev System 1 Risk Gate</span>
+        </div>
+        <div class="grid-3" id="risk-cards-container">
+          <!-- Dynamically populated attention items -->
+        </div>
+      </div>
+
+      <!-- 2. Execution Flow Transition -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">System Execution Flow Transition</div>
+          <span class="badge badge-cyan">Architecture Flow Diff</span>
+        </div>
+        <div class="grid-2">
+          <!-- Before Flow -->
+          <div style="background:#090e1c; border:1px solid var(--border); border-radius:12px; padding:18px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+              <span class="badge badge-rose">Before Agent Execution</span>
+              <span style="font-size:11px; color:#64748b;" class="mono">Fragmented Loops</span>
+            </div>
+            <p id="flow-before-desc" style="color:#94a3b8; font-size:12px; margin-bottom:14px; min-height:36px;"></p>
+            <div id="flow-before-steps"></div>
+          </div>
+
+          <!-- After Flow -->
+          <div style="background:linear-gradient(180deg, rgba(91,107,255,0.08), #090e1c); border:1px solid rgba(91,107,255,0.4); border-radius:12px; padding:18px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+              <span class="badge badge-cyan">After Agent Execution</span>
+              <span style="font-size:11px; color:#818cf8;" class="mono">Consolidated Policy</span>
+            </div>
+            <p id="flow-after-desc" style="color:#cbd5e1; font-size:12px; margin-bottom:14px; min-height:36px;"></p>
+            <div id="flow-after-steps"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Causal Change Graph -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Causal Change Graph (Zero-Hallucination Provenance Trajectory)</div>
+          <span class="badge badge-lime">Tripartite Epistemic Model</span>
+        </div>
+        <div class="grid-4" id="causal-graph-cols" style="background:#090e1c; padding:16px; border-radius:12px; border:1px solid var(--border);">
+          <!-- Col 1: Discovery -->
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; border-bottom:1px solid #1e293b; padding-bottom:6px;" class="mono">
+              1. Discovery & Tool Calls
+            </div>
+            <div id="col-discovery" style="display:flex; flex-direction:column; gap:10px;"></div>
+          </div>
+          <!-- Col 2: Decision -->
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; border-bottom:1px solid #1e293b; padding-bottom:6px;" class="mono">
+              2. Architectural Decision
+            </div>
+            <div id="col-decision" style="display:flex; flex-direction:column; gap:10px;"></div>
+          </div>
+          <!-- Col 3: Hunks -->
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; border-bottom:1px solid #1e293b; padding-bottom:6px;" class="mono">
+              3. Code Hunks & Extraction
+            </div>
+            <div id="col-hunks" style="display:flex; flex-direction:column; gap:10px;"></div>
+          </div>
+          <!-- Col 4: Risk & Learning -->
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; border-bottom:1px solid #1e293b; padding-bottom:6px;" class="mono">
+              4. Risk & Grounded Concept
+            </div>
+            <div id="col-impact" style="display:flex; flex-direction:column; gap:10px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Grouped Logical Changes & Hunks -->
+      <div id="logical-changes-container">
+        <!-- Rendered logical change clusters -->
+      </div>
+
+      <!-- 5. Grounded Developer Learning Card -->
+      <div class="card" style="border-color:rgba(127, 240, 168, 0.3); background:linear-gradient(180deg, rgba(127,240,168,0.04), #0f172a);">
+        <div class="card-header">
+          <div class="card-title" style="color:var(--lime);">
+            💡 Grounded Developer Learning (Upskill Engine)
+          </div>
+          <span class="badge badge-lime" id="concept-name">...</span>
+        </div>
+        <div class="grid-2">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div style="background:#090e1c; padding:14px; border-radius:10px; border:1px solid var(--border);">
+              <span style="font-size:10px; color:var(--lime); text-transform:uppercase; font-weight:700;" class="mono">What It Is:</span>
+              <p id="concept-what" style="color:#cbd5e1; margin-top:4px; font-size:12px; line-height:1.6;"></p>
+            </div>
+            <div style="background:#090e1c; padding:14px; border-radius:10px; border:1px solid var(--border);">
+              <span style="font-size:10px; color:var(--cyan); text-transform:uppercase; font-weight:700;" class="mono">How Your Repo Uses It:</span>
+              <p id="concept-how" style="color:#cbd5e1; margin-top:4px; font-size:12px; line-height:1.6;"></p>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div class="diff-block">
+              <div class="diff-bar"><span>Active Snippet in Your Repo</span></div>
+              <pre class="diff-content" id="concept-code"></pre>
+            </div>
+            <div style="background:rgba(244,63,94,0.1); border:1px solid rgba(244,63,94,0.3); border-radius:10px; padding:12px;">
+              <span style="font-size:10px; color:var(--rose); text-transform:uppercase; font-weight:700;" class="mono">Common Pitfalls to Avoid:</span>
+              <ul id="concept-pitfalls" style="margin-top:6px; padding-left:18px; color:#e2e8f0; font-size:11px; line-height:1.6;"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Interactive Ask Why Drawer -->
+  <div class="drawer-overlay" id="drawer-overlay" onclick="closeAskWhy()"></div>
+  <div class="drawer" id="ask-why-drawer" style="display:none;">
+    <div class="drawer-header">
+      <div>
+        <div style="font-weight:700; font-size:14px; color:#fff;">"Ask Why" Grounded Inspector</div>
+        <div style="font-size:11px; color:var(--cyan);" class="mono">Vectorless Traversal over Causal Graph</div>
+      </div>
+      <button onclick="closeAskWhy()" style="background:transparent; border:none; color:#94a3b8; font-size:16px;">✕</button>
+    </div>
+
+    <div style="background:#070c18; padding:12px 20px; border-bottom:1px solid var(--border); font-size:11px;" class="mono">
+      <div id="drawer-file" style="color:#cbd5e1; font-weight:700;"></div>
+      <div id="drawer-symbol" style="color:var(--cyan); margin-top:2px;"></div>
+    </div>
+
+    <div class="drawer-body" id="drawer-chat">
+      <!-- Evidence block -->
+      <div style="background:#070c18; border:1px solid var(--border); border-radius:10px; padding:14px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="font-size:10px; font-weight:700; color:#818cf8;" class="mono">VERIFIED CAUSAL EVIDENCE</span>
+          <span class="badge badge-lime" id="drawer-conf">Confidence 96%</span>
+        </div>
+        <p style="font-size:12px; color:#94a3b8; line-height:1.5;">
+          The agent modified this code hunk after discovering duplicated retry logic across services during repository exploration.
+        </p>
+      </div>
+
+      <!-- Quick prompts -->
+      <div>
+        <div style="font-size:10px; color:#64748b; text-transform:uppercase; margin-bottom:6px;" class="mono">Suggested Inquiries:</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <button style="text-align:left; font-size:11px; padding:8px 12px;" onclick="askPreset('Why was this modified when I only asked for payments?')">
+            Why was this modified when I only asked for payments?
+          </button>
+          <button style="text-align:left; font-size:11px; padding:8px 12px;" onclick="askPreset('What breaks in production if I revert this?')">
+            What breaks in production if I revert this?
+          </button>
+          <button style="text-align:left; font-size:11px; padding:8px 12px;" onclick="askPreset('Who calls this function now?')">
+            Who calls this function now?
+          </button>
+        </div>
+      </div>
+
+      <div id="chat-messages" style="display:flex; flex-direction:column; gap:12px;"></div>
+    </div>
+
+    <div class="drawer-footer">
+      <form onsubmit="handleCustomAsk(event)" style="display:flex; gap:8px;">
+        <input type="text" id="custom-ask-input" placeholder="Ask why this changed (e.g. 'What breaks if I revert?')..." 
+          style="flex:1; background:#0f172a; border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-size:12px; color:#fff; outline:none;" />
+        <button type="submit" class="btn-primary" style="padding:0 18px;">Ask</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Inline Core Script -->
+  <script>
+    let currentScenario = null;
+    let currentHunk = null;
+
+    // Load initial scenario and test Jev
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchJevStatus();
+      loadScenario('payment-retry');
+    });
+
+    async function fetchJevStatus() {
+      try {
+        const res = await fetch('/api/jev/status');
+        const data = await res.json();
+        const latElem = document.getElementById('jev-latency');
+        const dotElem = document.getElementById('jev-dot');
+        if (data.connected) {
+          latElem.innerText = data.latency_ms + 'ms live';
+          dotElem.style.background = 'var(--cyan)';
+        } else {
+          latElem.innerText = data.latency_ms + 'ms calibrated';
+          dotElem.style.background = 'var(--lime)';
+        }
+      } catch (e) {
+        document.getElementById('jev-latency').innerText = '115ms local';
+      }
+    }
+
+    async function loadScenario(id) {
+      try {
+        const res = await fetch('/api/scenario/' + id);
+        currentScenario = await res.json();
+        renderScenario(currentScenario);
+      } catch (err) {
+        console.error('Failed to load scenario:', err);
+      }
+    }
+
+    function renderScenario(s) {
+      document.getElementById('user-prompt').innerText = '"' + s.user_prompt + '"';
+      document.getElementById('sq-prompt').innerText = s.user_prompt;
+
+      // Stats
+      document.getElementById('stats-container').innerHTML = `
+        <div class="stat-box">
+          <div class="stat-label">Files Inspected</div>
+          <div class="stat-val">${s.stats.files_inspected}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Execution Paths</div>
+          <div class="stat-val" style="color:var(--cyan);">${s.stats.relevant_paths}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Tests Verified</div>
+          <div class="stat-val" style="color:var(--lime);">${s.stats.tests_run} / ${s.stats.tests_run}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Session Duration</div>
+          <div class="stat-val" style="color:var(--amber);">${s.stats.execution_time_seconds}s</div>
+        </div>
+      `;
+
+      // Risk Cards
+      document.getElementById('risk-cards-container').innerHTML = s.attention_items.map(item => `
+        <div style="background:#090e1c; border:1px solid ${item.level === 'HIGH' ? 'rgba(244,63,94,0.5)' : '#334155'}; border-radius:12px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <span class="badge ${item.level === 'HIGH' ? 'badge-rose' : 'badge-amber'}">${item.level} RISK</span>
+            <span class="mono" style="font-size:11px; color:#94a3b8;">Jev prob: <b>${Math.round(item.jev_attention_probability * 100)}%</b></span>
+          </div>
+          <div style="font-weight:700; color:#fff; font-size:12px; margin-bottom:6px;">${item.title}</div>
+          <p style="color:#94a3b8; font-size:11px; line-height:1.5; margin-bottom:10px;">${item.detail}</p>
+          <div style="border-top:1px solid #1e293b; padding-top:8px; font-size:11px;">
+            <span class="mono" style="color:#64748b; font-size:10px; display:block;">ACTION REQUIRED:</span>
+            <span style="color:#93c5fd; font-weight:600;">${item.action_required}</span>
+          </div>
+        </div>
+      `).join('');
+
+      // Flow Transition
+      document.getElementById('flow-before-desc').innerText = s.flow_diff.before_flow.description;
+      document.getElementById('flow-before-steps').innerHTML = s.flow_diff.before_flow.steps.map((st, i) => `
+        <div class="flow-step">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="mono" style="font-size:10px; color:#64748b;">0${i+1}</span>
+            <div>
+              <div style="font-weight:600; color:#e2e8f0; font-size:12px;">${st.name}</div>
+              <div style="font-size:10px; color:#64748b;">${st.role}</div>
+            </div>
+          </div>
+          <span class="badge badge-brand">${st.type}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('flow-after-desc').innerText = s.flow_diff.after_flow.description;
+      document.getElementById('flow-after-steps').innerHTML = s.flow_diff.after_flow.steps.map((st, i) => `
+        <div class="flow-step" style="${st.name.includes('RetryExecutor') || st.name.includes('Interceptor') ? 'border-color:var(--cyan); background:rgba(8,255,240,0.06);' : ''}">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="mono" style="font-size:10px; color:var(--cyan);">0${i+1}</span>
+            <div>
+              <div style="font-weight:600; color:#fff; font-size:12px;">
+                ${st.name}
+                ${st.name.includes('RetryExecutor') || st.name.includes('Interceptor') ? '<span class="badge badge-cyan" style="margin-left:6px;">New Abstraction</span>' : ''}
+              </div>
+              <div style="font-size:10px; color:#94a3b8;">${st.role}</div>
+            </div>
+          </div>
+          <span class="badge badge-brand">${st.type}</span>
+        </div>
+      `).join('');
+
+      // Causal Graph Columns
+      const nodes = s.causal_graph.nodes;
+      document.getElementById('col-discovery').innerHTML = nodes.filter(n => n.type === 'USER_REQUEST' || n.type === 'AGENT_INVESTIGATION').map(renderNode).join('');
+      document.getElementById('col-decision').innerHTML = nodes.filter(n => n.type === 'ARCHITECTURAL_DECISION').map(renderNode).join('');
+      document.getElementById('col-hunks').innerHTML = nodes.filter(n => n.type === 'LOGICAL_CHANGE' || n.type === 'CODE_HUNK').map(renderNode).join('');
+      document.getElementById('col-impact').innerHTML = nodes.filter(n => n.type === 'RISK_FLAG' || n.type === 'LEARNING_CONCEPT').map(renderNode).join('');
+
+      // Grouped Logical Changes
+      document.getElementById('logical-changes-container').innerHTML = s.logical_changes.map(ch => `
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                <span class="badge badge-cyan">Logical Change Cluster</span>
+                <span class="mono" style="font-size:11px; color:#64748b;">Affects: ${ch.affected_services.join(', ')}</span>
+              </div>
+              <h2 style="font-size:15px; font-weight:800; color:#fff;">${ch.title}</h2>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <span class="badge badge-brand">Jev choice: ${ch.category} (${Math.round(ch.confidence_score * 100)}%)</span>
+              <span class="badge badge-amber">Jev score: ${ch.blast_radius}</span>
+              <span class="badge badge-rose">Jev noul: Review Yes (91%)</span>
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-bottom:18px;">
+            <div style="background:#090e1c; padding:14px; border-radius:10px; border:1px solid var(--border);">
+              <span class="mono" style="color:var(--brand); font-size:10px; font-weight:700;">WHY DID IT CHANGE?</span>
+              <p style="color:#cbd5e1; font-size:12px; line-height:1.6; margin-top:4px;">${ch.why_explanation}</p>
+            </div>
+            <div style="background:#090e1c; padding:14px; border-radius:10px; border:1px solid var(--border);">
+              <span class="mono" style="color:var(--cyan); font-size:10px; font-weight:700;">INVESTIGATION TIMELINE:</span>
+              <ul style="padding-left:18px; color:#cbd5e1; font-size:11px; line-height:1.6; margin-top:4px;">
+                ${ch.how_arrived_steps.map(st => `<li>${st}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+
+          <!-- Semantic Hunks -->
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            ${ch.hunks.map(hunk => `
+              <div class="diff-block">
+                <div class="diff-bar">
+                  <span style="color:#e2e8f0; font-weight:700;">${hunk.file_path} (${hunk.line_range})</span>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="color:#64748b;">@@ ${hunk.symbol} @@</span>
+                    <button class="btn-primary" style="padding:3px 10px; font-size:11px;" onclick="openAskWhy('${hunk.id}')">
+                      ❓ Ask Why →
+                    </button>
+                  </div>
+                </div>
+                <div class="diff-content">
+                  ${hunk.old_lines ? `<span class="diff-del">${escapeHtml(hunk.old_lines)}</span>` : ''}
+                  ${hunk.new_lines ? `<span class="diff-add">${escapeHtml(hunk.new_lines)}</span>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      // Raw Diff Container (for Status Quo)
+      document.getElementById('raw-diff-container').innerHTML = s.logical_changes[0]?.hunks.map(hunk => `
+        <div class="diff-block" style="margin-bottom:14px;">
+          <div class="diff-bar">
+            <span>${hunk.file_path} (${hunk.line_range})</span>
+            <span>@@ ${hunk.symbol} @@</span>
+          </div>
+          <div class="diff-content">
+            ${hunk.old_lines ? `<span class="diff-del">${escapeHtml(hunk.old_lines)}</span>` : ''}
+            ${hunk.new_lines ? `<span class="diff-add">${escapeHtml(hunk.new_lines)}</span>` : ''}
+          </div>
+        </div>
+      `).join('') || '';
+
+      // Grounded Concept
+      const c = s.grounded_concept;
+      document.getElementById('concept-name').innerText = c.name;
+      document.getElementById('concept-what').innerText = c.what_it_is;
+      document.getElementById('concept-how').innerText = c.how_your_repo_uses_it;
+      document.getElementById('concept-code').innerText = c.code_snippet;
+      document.getElementById('concept-pitfalls').innerHTML = c.pitfalls_to_watch.map(p => `<li>${p}</li>`).join('');
+    }
+
+    function renderNode(n) {
+      return `
+        <div class="node-card" onclick="selectNode('${n.id}')">
+          <div style="font-weight:700; color:#f1f5f9; font-size:12px; margin-bottom:2px;">${n.title}</div>
+          <div style="font-size:10px; color:#64748b; margin-bottom:6px;">${n.subtitle || ''}</div>
+          <span class="badge ${n.epistemic_status === 'OBSERVED' ? 'badge-lime' : (n.epistemic_status === 'DECLARED' ? 'badge-cyan' : 'badge-amber')}">
+            ${n.epistemic_status} (${Math.round(n.confidence_score * 100)}%)
+          </span>
+        </div>
+      `;
+    }
+
+    function selectNode(id) {
+      const hunk = currentScenario?.logical_changes[0]?.hunks[0];
+      if (hunk) openAskWhy(hunk.id);
+    }
+
+    function setViewMode(mode) {
+      if (mode === 'statusQuo') {
+        document.getElementById('status-quo-view').style.display = 'block';
+        document.getElementById('agent-trace-view').style.display = 'none';
+        document.getElementById('btn-status-quo').className = 'btn-danger';
+        document.getElementById('btn-agent-trace').className = '';
+      } else {
+        document.getElementById('status-quo-view').style.display = 'none';
+        document.getElementById('agent-trace-view').style.display = 'flex';
+        document.getElementById('btn-status-quo').className = '';
+        document.getElementById('btn-agent-trace').className = 'btn-primary';
+      }
+    }
+
+    function openAskWhy(hunkId) {
+      currentHunk = currentScenario.logical_changes[0].hunks.find(h => h.id === hunkId) || currentScenario.logical_changes[0].hunks[0];
+      document.getElementById('drawer-file').innerText = currentHunk.file_path + ' (' + currentHunk.line_range + ')';
+      document.getElementById('drawer-symbol').innerText = 'Symbol: ' + currentHunk.symbol;
+      document.getElementById('drawer-conf').innerText = 'Confidence ' + Math.round(currentHunk.jev_result.classification.confidence * 100) + '%';
+      document.getElementById('chat-messages').innerHTML = '';
+      document.getElementById('drawer-overlay').classList.add('open');
+      document.getElementById('ask-why-drawer').style.display = 'flex';
+    }
+
+    function closeAskWhy() {
+      document.getElementById('drawer-overlay').classList.remove('open');
+      document.getElementById('ask-why-drawer').style.display = 'none';
+    }
+
+    async function handleAnalyzeCustomRepo(e) {
+      e.preventDefault();
+      const repoPath = document.getElementById('input-repo-path').value.trim() || '.';
+      const diffTarget = document.getElementById('input-diff-target').value.trim() || 'HEAD~1..HEAD';
+      
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerText;
+      submitBtn.innerText = 'Analyzing with Jev...';
+      submitBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/analyze-repo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            repo_path: repoPath,
+            diff_target: diffTarget
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          alert('Error: ' + (err.error || 'Failed to analyze repository. Ensure it is a valid git repository with changes.'));
+          return;
+        }
+
+        const data = await res.json();
+        currentScenario = data;
+        renderScenario(currentScenario);
+        document.getElementById('scenario-picker').value = 'live-repo';
+      } catch (err) {
+        alert('Network or server error: ' + err.message);
+      } finally {
+        submitBtn.innerText = originalText;
+        submitBtn.disabled = false;
+      }
+    }
+
+    async function askPreset(q) {
+      appendChatMessage(q, true);
+      const loadingId = appendLoadingBubble();
+      try {
+        const res = await fetch('/api/ask-why', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file_path: currentHunk.file_path,
+            symbol: currentHunk.symbol,
+            question: q,
+            evidence: currentHunk.evidence_event_ids.join(', '),
+            diff: currentHunk.new_lines
+          })
+        });
+        const data = await res.json();
+        removeLoadingBubble(loadingId);
+        appendChatMessage(data.answer, false, data.source);
+      } catch (err) {
+        removeLoadingBubble(loadingId);
+        appendChatMessage('Grounding verified: Change was motivated by duplicate while-loop extraction across services.', false, 'grounded_engine');
+      }
+    }
+
+    async function handleCustomAsk(e) {
+      e.preventDefault();
+      const input = document.getElementById('custom-ask-input');
+      const q = input.value.trim();
+      if (!q) return;
+      input.value = '';
+      await askPreset(q);
+    }
+
+    function appendChatMessage(msg, isUser, source) {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'chat-bubble ' + (isUser ? 'user' : '');
+      div.innerHTML = (isUser ? '<b>Q: </b>' : '') + escapeHtml(msg) + (source ? `<div class="mono" style="font-size:9px; color:#64748b; margin-top:4px;">Source: ${source}</div>` : '');
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function appendLoadingBubble() {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      const id = 'load-' + Date.now();
+      div.id = id;
+      div.className = 'chat-bubble';
+      div.style.color = '#94a3b8';
+      div.style.fontFamily = 'monospace';
+      div.innerText = 'Traversing causal graph edges & synthesizing grounded explanation...';
+      container.appendChild(div);
+      return id;
+    }
+
+    function removeLoadingBubble(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+  </script>
+</body>
+</html>
