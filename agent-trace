@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# AgentTrace Launcher — Inspect any Git repository with Jev System 1
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PYTHONPATH="$DIR:$PYTHONPATH"
+exec "$DIR/.venv/bin/python" -m agent_trace.cli "$@"

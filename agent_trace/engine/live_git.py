@@ -13,30 +13,165 @@ class LiveGitEngine:
     """Production Git Analyzer: Inspects live Git repositories, extracts hunks, and runs Jev evaluations."""
 
     def __init__(self, repo_path: str = "."):
-        self.repo_path = Path(repo_path).resolve()
+        self.repo_path = Path(repo_path).expanduser().resolve()
+
+    def _run_git(self, args: List[str], cwd: Optional[Path] = None) -> subprocess.CompletedProcess:
+        env = os.environ.copy()
+        env["GIT_CONFIG_GLOBAL"] = "/dev/null"
+        target_dir = cwd or self.repo_path
+        try:
+            return subprocess.run(
+                ["git"] + args,
+                cwd=target_dir,
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False
+            )
+        except Exception as e:
+            return subprocess.CompletedProcess(["git"] + args, 1, "", str(e))
 
     def is_git_repo(self) -> bool:
-        return (self.repo_path / ".git").exists() or subprocess.run(
-            ["git", "rev-parse", "--is-inside-work-tree"],
-            cwd=self.repo_path,
-            capture_output=True,
-            text=True
-        ).returncode == 0
+        res = self._run_git(["rev-parse", "--is-inside-work-tree"])
+        return res.returncode == 0
 
-    def get_diff(self, target: str = "HEAD~1..HEAD") -> str:
-        """Fetches raw git diff for commit range or working tree."""
-        cmd = ["git", "diff", target] if ".." in target else ["git", "diff", target]
-        res = subprocess.run(
-            cmd,
-            cwd=self.repo_path,
-            capture_output=True,
-            text=True,
-            check=False
-        )
-        if res.returncode != 0:
-            # Fall back to working tree diff
-            res = subprocess.run(["git", "diff"], cwd=self.repo_path, capture_output=True, text=True)
-        return res.stdout
+    def get_repo_root(self) -> Path:
+        res = self._run_git(["rev-parse", "--show-toplevel"])
+        if res.returncode == 0 and res.stdout.strip():
+            return Path(res.stdout.strip())
+        return self.repo_path
+
+    def get_repo_meta(self) -> Dict[str, str]:
+        """Returns repo name, branch, and latest commit info."""
+        root = self.get_repo_root()
+        branch_res = self._run_git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=root)
+        branch = branch_res.stdout.strip() if branch_res.returncode == 0 else "main"
+
+        commit_res = self._run_git(["log", "-1", "--format=%h|%s"], cwd=root)
+        commit_hash, commit_msg = ("clean", "No commits yet")
+        if commit_res.returncode == 0 and commit_res.stdout.strip():
+            parts = commit_res.stdout.strip().split("|", 1)
+            commit_hash = parts[0]
+            commit_msg = parts[1] if len(parts) > 1 else ""
+
+        return {
+            "name": root.name,
+            "root": str(root),
+            "branch": branch,
+            "commit_hash": commit_hash,
+            "commit_msg": commit_msg
+        }
+
+    def _get_untracked_files_diff(self, root: Path) -> str:
+        """Finds untracked files and turns them into unified diff format."""
+        status_res = self._run_git(["status", "--porcelain"], cwd=root)
+        if status_res.returncode != 0 or not status_res.stdout.strip():
+            return ""
+
+        synthetic_diffs = []
+        ignored_exts = {".pyc", ".png", ".jpg", ".jpeg", ".lock", ".zip", ".tar", ".gz", ".db", ".sqlite", ".DS_Store"}
+        ignored_dirs = {"node_modules", ".venv", "venv", "__pycache__", ".git", "dist", "build"}
+
+        for line in status_res.stdout.split("\n"):
+            line = line.strip()
+            if not line.startswith("?? "):
+                continue
+            rel_path = line[3:].strip().strip('"')
+            
+            # Skip ignored paths
+            parts = Path(rel_path).parts
+            if any(p in ignored_dirs for p in parts):
+                continue
+            if any(rel_path.endswith(ext) for ext in ignored_exts):
+                continue
+
+            full_file = root / rel_path
+            if not full_file.is_file():
+                continue
+
+            try:
+                # Limit size to 256KB to avoid massive dumps
+                if full_file.stat().st_size > 256 * 1024:
+                    continue
+                content = full_file.read_text(encoding="utf-8", errors="replace")
+                lines = content.splitlines()
+                count = len(lines)
+                plus_lines = "\n".join("+" + l for l in lines)
+                synthetic = (
+                    f"diff --git a/{rel_path} b/{rel_path}\n"
+                    f"new file mode 100644\n"
+                    f"--- /dev/null\n"
+                    f"+++ b/{rel_path}\n"
+                    f"@@ -0,0 +1,{count} @@\n"
+                    f"{plus_lines}\n"
+                )
+                synthetic_diffs.append(synthetic)
+            except Exception:
+                continue
+
+        return "\n".join(synthetic_diffs)
+
+    def get_diff(self, target: str = "auto") -> tuple[str, str]:
+        """
+        Fetches raw git diff for commit range or working tree.
+        Returns: (raw_diff, detected_mode_description)
+        """
+        root = self.get_repo_root()
+        mode_desc = target
+        t = target.strip()
+        lowered = t.lower()
+
+        # 1. Staged only
+        if lowered in ("staged", "cached", "--staged", "--cached"):
+            res = self._run_git(["diff", "--staged"], cwd=root)
+            return res.stdout, "Staged Changes"
+
+        # 2. Unstaged only
+        if lowered in ("unstaged", "working-tree-unstaged"):
+            res = self._run_git(["diff"], cwd=root)
+            return res.stdout, "Unstaged Working Tree Changes"
+
+        # 3. All uncommitted (staged + unstaged + untracked)
+        if lowered in ("uncommitted", "working", "all-uncommitted"):
+            res = self._run_git(["diff", "HEAD"], cwd=root)
+            diff_text = res.stdout
+            untracked = self._get_untracked_files_diff(root)
+            if untracked:
+                diff_text = (diff_text + "\n" + untracked).strip()
+            return diff_text, "All Uncommitted Changes (Working Tree + Staged + Untracked)"
+
+        # 4. Explicit commit target or range (e.g. main..feature, HEAD~1..HEAD, sha)
+        if lowered not in ("auto", "default", ""):
+            res = self._run_git(["diff", t], cwd=root)
+            if res.returncode == 0 and res.stdout.strip():
+                return res.stdout, f"Commit Diff: {t}"
+            # Try git show if single commit sha/ref was passed
+            show_res = self._run_git(["show", "--format=", t], cwd=root)
+            if show_res.returncode == 0 and show_res.stdout.strip():
+                return show_res.stdout, f"Commit {t}"
+
+        # 5. Smart AUTO mode:
+        # Check uncommitted modifications first
+        head_diff = self._run_git(["diff", "HEAD"], cwd=root).stdout
+        untracked = self._get_untracked_files_diff(root)
+        combined = (head_diff + "\n" + untracked).strip()
+        if combined:
+            return combined, "Active Working Tree Changes (Uncommitted)"
+
+        # Working tree is clean: Inspect latest commit
+        latest_commit_diff = self._run_git(["diff", "HEAD~1..HEAD"], cwd=root)
+        if latest_commit_diff.returncode == 0 and latest_commit_diff.stdout.strip():
+            meta = self.get_repo_meta()
+            return latest_commit_diff.stdout, f"Latest Commit: {meta['commit_hash']} (\"{meta['commit_msg']}\")"
+
+        # If repo only has initial commit (HEAD~1 fails)
+        initial_commit = self._run_git(["show", "--format=", "HEAD"], cwd=root)
+        if initial_commit.returncode == 0 and initial_commit.stdout.strip():
+            meta = self.get_repo_meta()
+            return initial_commit.stdout, f"Initial Commit: {meta['commit_hash']} (\"{meta['commit_msg']}\")"
+
+        # Clean repo with no changes
+        return "", "Clean repository (no uncommitted changes or commits detected)"
 
     def parse_diff_hunks(self, raw_diff: str) -> List[DiffHunk]:
         """Parses unified git diff output into structured DiffHunk models."""

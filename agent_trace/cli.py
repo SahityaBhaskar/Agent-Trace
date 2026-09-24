@@ -91,8 +91,9 @@ def main():
 
     # analyze command (RUN ON ANY REPO!)
     analyze_parser = subparsers.add_parser("analyze", help="Analyze any Git repository on your machine")
-    analyze_parser.add_argument("--repo", type=str, default=".", help="Path to any Git repository (default: current directory)")
-    analyze_parser.add_argument("--diff", type=str, default="HEAD~1..HEAD", help="Git diff commit range or branch (default: HEAD~1..HEAD)")
+    analyze_parser.add_argument("repo_path", nargs="?", default=".", help="Path to any Git repository (default: current directory)")
+    analyze_parser.add_argument("--repo", type=str, default=None, help="Explicit flag for repository path")
+    analyze_parser.add_argument("--diff", type=str, default="auto", help="Git diff target: 'auto', 'uncommitted', 'staged', 'unstaged', 'HEAD~1..HEAD', or branch (default: auto)")
     analyze_parser.add_argument("--prompt", type=str, default=None, help="Optional user request prompt to correlate against")
     analyze_parser.add_argument("--serve", action="store_true", help="Launch the Web Control Plane for this repository after analysis")
     analyze_parser.add_argument("--port", type=int, default=8000, help="Port if --serve is used")
@@ -109,18 +110,28 @@ def main():
     # test-jev command
     subparsers.add_parser("test-jev", help="Test live connection to Jev TypeSafe AI API")
 
+    # Shortcut: if first argument is a path (not a known command), redirect to analyze
+    if len(sys.argv) > 1 and sys.argv[1] not in ("analyze", "report", "serve", "test-jev", "-h", "--help"):
+        target_path = sys.argv[1]
+        sys.argv = [sys.argv[0], "analyze", target_path] + sys.argv[2:]
+
     args = parser.parse_args()
 
     if args.command == "analyze":
-        repo_path = Path(args.repo).resolve()
-        if not (repo_path / ".git").exists() and not (repo_path.parent / ".git").exists():
-            print(f"{RED}Error: '{repo_path}' is not a git repository.{RESET}")
+        target = args.repo or args.repo_path or "."
+        repo_path = Path(target).expanduser().resolve()
+        
+        from .engine.live_git import live_git_engine
+        live_git_engine.repo_path = repo_path
+        if not live_git_engine.is_git_repo():
+            print(f"{RED}Error: '{repo_path}' is not a valid git repository or working tree.{RESET}")
             sys.exit(1)
 
-        print(f"Analyzing repository at {CYAN}{repo_path}{RESET} (diff target: {args.diff})...")
+        diff_target = args.diff or "auto"
+        print(f"Analyzing repository at {CYAN}{repo_path}{RESET} (mode: {diff_target})...")
         scenario = transcript_watcher.generate_scenario_from_repo(
             repo_path=str(repo_path),
-            diff_target=args.diff,
+            diff_target=diff_target,
             user_prompt=args.prompt
         )
         print_scenario_report(scenario)
@@ -142,7 +153,8 @@ def main():
         print(f"Result: {res}")
     else:
         # Default action: analyze current repo
-        scenario = transcript_watcher.generate_scenario_from_repo(".", diff_target="HEAD~1..HEAD")
+        scenario = transcript_watcher.generate_scenario_from_repo(".", diff_target="auto")
+        print_scenario_report(scenario)
         print_scenario_report(scenario)
 
 if __name__ == "__main__":

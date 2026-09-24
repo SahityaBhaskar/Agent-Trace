@@ -56,7 +56,7 @@ class AgentTraceHandler(BaseHTTPRequestHandler):
             if path.startswith("/api/scenario/"):
                 scenario_id = path.replace("/api/scenario/", "").strip("/")
                 custom_path = params.get("path", [DEFAULT_REPO_PATH])[0]
-                diff_target = params.get("diff", ["HEAD~1..HEAD"])[0]
+                diff_target = params.get("diff", ["auto"])[0]
 
                 if scenario_id == "live-repo":
                     scenario = transcript_watcher.generate_scenario_from_repo(custom_path, diff_target=diff_target)
@@ -99,22 +99,25 @@ class AgentTraceHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         try:
+            # Always consume body first to prevent socket desynchronization in HTTP keep-alive
+            content_length = int(self.headers.get("Content-Length", 0))
+            post_data = self.rfile.read(content_length) if content_length > 0 else b""
+            body = json.loads(post_data.decode("utf-8")) if post_data else {}
+
             parsed = urlparse(self.path)
-            path = parsed.path
+            path = parsed.path.rstrip("/")
 
             # Dynamic Live Repository Analysis Endpoint
             if path == "/api/analyze-repo":
-                content_length = int(self.headers.get("Content-Length", 0))
-                post_data = self.rfile.read(content_length)
-                body = json.loads(post_data.decode("utf-8")) if post_data else {}
-
                 repo_path = body.get("repo_path", DEFAULT_REPO_PATH)
-                diff_target = body.get("diff_target", "HEAD~1..HEAD")
+                diff_target = body.get("diff_target", "auto")
                 user_prompt = body.get("user_prompt", None)
 
                 resolved_path = Path(repo_path).expanduser().resolve()
-                if not (resolved_path / ".git").exists() and not (resolved_path.parent / ".git").exists():
-                    err = json.dumps({"error": f"Path '{repo_path}' is not a valid git repository."}).encode("utf-8")
+                from .engine.live_git import live_git_engine
+                live_git_engine.repo_path = resolved_path
+                if not live_git_engine.is_git_repo():
+                    err = json.dumps({"error": f"Path '{repo_path}' is not an accessible git repository. Check path and permissions."}).encode("utf-8")
                     self._set_headers("application/json", 400, len(err))
                     self.wfile.write(err)
                     return
@@ -131,15 +134,14 @@ class AgentTraceHandler(BaseHTTPRequestHandler):
 
             # Ask Why grounded endpoint
             if path == "/api/ask-why":
-                content_length = int(self.headers.get("Content-Length", 0))
-                post_data = self.rfile.read(content_length)
-                body = json.loads(post_data.decode("utf-8")) if post_data else {}
 
-                file_path = body.get("file_path", "src/services/PaymentService.ts")
-                symbol = body.get("symbol", "charge")
+                file_path = body.get("file_path", "")
+                symbol = body.get("symbol", "")
                 question = body.get("question", "Why was this changed?")
-                evidence = body.get("evidence", "Agent found duplicate loops")
+                evidence = body.get("evidence", "")
                 diff = body.get("diff", "")
+                jev_category = body.get("jev_category", "REFACTOR")
+                blast_level = body.get("blast_level", "localized")
 
                 result = gemini_client.answer_grounded_question(
                     file_path=file_path,
@@ -147,6 +149,8 @@ class AgentTraceHandler(BaseHTTPRequestHandler):
                     question=question,
                     evidence_summary=evidence,
                     diff_snippet=diff,
+                    jev_category=jev_category,
+                    blast_level=blast_level,
                 )
 
                 payload = json.dumps(result).encode("utf-8")
