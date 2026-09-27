@@ -169,8 +169,8 @@ export function attachTokenRefreshInterceptor(axiosInstance: AxiosInstance) {
         CausalNode(id="n_auth_req", type="USER_REQUEST", title='User Prompt: "Prevent random user logouts"', epistemic_status="DECLARED", confidence_score=1.0, data={"details": "Developer asked agent to prevent random session terminations."}),
         CausalNode(id="n_auth_search", type="AGENT_INVESTIGATION", title="Grep 401 status handlers", subtitle="Found 7 duplicate try/catch blocks", epistemic_status="OBSERVED", confidence_score=0.97, data={"details": "Discovered components were independently calling refresh endpoint."}),
         CausalNode(id="n_auth_dec", type="ARCHITECTURAL_DECISION", title="Decision: Implement Request Queue Interceptor", subtitle="Security & resilience pattern", epistemic_status="OBSERVED", confidence_score=0.98, data={"details": "Avoid token revocation race conditions."}),
-        CausalNode(id="n_auth_hunk", type="CODE_HUNK", title="tokenRefresh.ts created", subtitle="SECURITY_RELEVANT_CHANGE (Jev: 98%)", epistemic_status="OBSERVED", confidence_score=0.98, data={"filePath": "src/api/interceptors/tokenRefresh.ts"}),
-        CausalNode(id="n_auth_risk", type="RISK_FLAG", title="Critical Risk: Infinite Loop on Refresh 401", subtitle="Jev Attention: 97%", epistemic_status="INFERRED", confidence_score=0.97, data={"details": "If refresh token itself is expired, loop must terminate immediately with logout."}),
+        CausalNode(id="n_auth_hunk", type="CODE_HUNK", title="tokenRefresh.ts", subtitle="src/api/interceptors · 1 hunk (NEW)", epistemic_status="OBSERVED", confidence_score=0.98, data={"filePath": "src/api/interceptors/tokenRefresh.ts", "file_path": "src/api/interceptors/tokenRefresh.ts", "jevCategory": "SECURITY_RELEVANT_CHANGE", "hunk_count": 1, "symbols": ["AxiosInterceptor", "failedQueue"]}),
+        CausalNode(id="n_auth_risk", type="RISK_FLAG", title="Critical Risk: Verify Recursive Refresh Loop Breakpoint", subtitle="Jev Attention: 97%", epistemic_status="INFERRED", confidence_score=0.97, data={"risk_index": 0, "details": "If refresh token itself is expired, loop must terminate immediately with logout."}),
         CausalNode(id="n_auth_learn", type="LEARNING_CONCEPT", title="The Interceptor & Mutex Queue Pattern", subtitle="Security pattern detected", epistemic_status="OBSERVED", confidence_score=0.99, data={"tags": ["Security", "JWT", "Mutex", "Concurrency", "HTTP Pipeline"]}),
     ]
 
@@ -249,6 +249,42 @@ if (isRefreshing) {
                 detail="If the refresh token itself has expired and returns a 401, the interceptor must trigger immediate session termination instead of attempting another refresh.",
                 action_required="Verify originalRequest.url.includes('/auth/refresh') check is present before retrying.",
                 jev_attention_probability=0.97,
+                llm_summary="Security Review for attachTokenRefreshInterceptor: Token refresh failure could trigger infinite recursion without explicit endpoint exclusion.",
+                symbol="attachTokenRefreshInterceptor",
+                file_path="src/api/interceptors/tokenRefresh.ts",
+                hunk_id="hunk_auth_1",
+                diff_snippet="""+ export function attachTokenRefreshInterceptor(axiosInstance: AxiosInstance) {
++   axiosInstance.interceptors.response.use(
++     response => response,
++     async error => {
++       const originalRequest = error.config;
++       if (error.response?.status === 401 && !originalRequest._retry) {
++         if (originalRequest.url.includes('/auth/refresh')) {
++           logoutUser();
++           return Promise.reject(error);
++         }
++         originalRequest._retry = true;
++       }
++       return Promise.reject(error);
++     }
++   );
++ }""",
+                graph_context={
+                    "affected_callers": ["HttpClient", "AuthService", "UserProfile", "BillingDashboard"],
+                    "unattended_callers": ["legacyLoginHandler"],
+                    "coupled_services": ["HttpClient", "AuthService", "UserProfile", "BillingDashboard"],
+                    "blast_radius_level": "system_critical",
+                    "blast_radius_score": 4.0,
+                },
+                llm_analysis={
+                    "summary": "Security Review for attachTokenRefreshInterceptor: Token refresh failure could trigger infinite recursion without explicit endpoint exclusion.",
+                    "why_at_risk": "Modifications to `attachTokenRefreshInterceptor` intercept all application HTTP responses globally. If the refresh request itself returns a 401 Unauthorized status, absence of an explicit endpoint escape check will trigger an infinite circular retry loop that floods the auth server and exhausts browser memory.",
+                    "jev_signals_breakdown": "Classified as SECURITY_RELEVANT_CHANGE with system_critical blast radius (score 4.0/5.0). Human review probability is 97% with high attention priority.",
+                    "code_change_breakdown": "Added global Axios response interceptor managing response rejection handlers, retry flags, and async request queueing.",
+                    "change_graph_breakdown": "Change graph impacts HttpClient and couples 4 downstream services (AuthService, UserProfile, BillingDashboard). Warning: 1 legacy caller still bypasses centralized interceptor.",
+                    "recommended_verification": "Simulate an expired refresh token returning HTTP 401 and verify immediate redirect to logout with zero recursive retries.",
+                    "source": "Gemini LLM (System 2 Grounded)",
+                },
             ),
             AttentionItem(
                 title="Medium Risk: Stale State in Redux/Zustand Store",
@@ -256,6 +292,28 @@ if (isRefreshing) {
                 detail="When the token refreshes automatically, local state management stores must be updated with the new expiration timestamp.",
                 action_required="Dispatch authStore.setToken() inside the interceptor resolution handler.",
                 jev_attention_probability=0.81,
+                llm_summary="Senior Review Required for tokenRefresh: Store synchronization needed upon background token renewal.",
+                symbol="failedQueue.resolve",
+                file_path="src/api/interceptors/tokenRefresh.ts",
+                hunk_id="hunk_auth_1",
+                diff_snippet="""+ let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = [];
++ // Mutex queue drains on refresh success, updating bearer headers""",
+                graph_context={
+                    "affected_callers": ["authStore", "UserProfile"],
+                    "unattended_callers": [],
+                    "coupled_services": ["AuthService", "UserProfile"],
+                    "blast_radius_level": "localized",
+                    "blast_radius_score": 2.8,
+                },
+                llm_analysis={
+                    "summary": "Senior Review Required for tokenRefresh: Store synchronization needed upon background token renewal.",
+                    "why_at_risk": "While Axios headers are updated transparently on token renewal, front-end state stores (Redux/Zustand) can desynchronize if not informed of the new token expiry, leading to premature UI logout prompts.",
+                    "jev_signals_breakdown": "Human review probability is 81% (exceeds 80% threshold). Localized blast radius with medium state-coupling risk.",
+                    "code_change_breakdown": "Replaced individual component refresh catches with an in-memory Promise resolution queue.",
+                    "change_graph_breakdown": "Directly impacts authentication storage subscribers across UI components.",
+                    "recommended_verification": "Inspect state management subscriber triggers following successful 401 interceptor replay.",
+                    "source": "AgentTrace Grounded Risk Synthesis (Local)",
+                },
             ),
         ],
     )

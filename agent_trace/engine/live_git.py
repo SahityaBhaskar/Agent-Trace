@@ -179,8 +179,12 @@ class LiveGitEngine:
         if not raw_diff.strip():
             return hunks
 
-        file_diffs = raw_diff.split("diff --git ")
+        # Split by file boundary anchored at start of line
+        file_diffs = re.split(r"(?:^|\n)diff --git\s+", raw_diff)
         hunk_idx = 0
+        # Per-call cache: file_path -> list of symbols (avoid re-parsing same file)
+        _symbol_cache: Dict[str, Any] = {}
+        root = self.get_repo_root()
 
         for fdiff in file_diffs:
             if not fdiff.strip():
@@ -188,13 +192,38 @@ class LiveGitEngine:
 
             lines = fdiff.split("\n")
             first_line = lines[0]
-            # Match paths: a/path b/path
-            path_match = re.search(r"a/(.+?)\s+b/(.+)", first_line)
-            file_path = path_match.group(2) if path_match else "unknown_file"
+            # Match paths: a/path b/path, or +++ b/path, or --- a/path
+            path_match = re.search(r"a/(.+?)\s+b/([^\s]+)", first_line)
+            if path_match:
+                file_path = path_match.group(2).strip()
+            else:
+                plus_match = re.search(r"\+\+\+\s+b/([^\s]+)", fdiff)
+                if plus_match and not plus_match.group(1).strip().startswith("/dev/null"):
+                    file_path = plus_match.group(1).strip()
+                else:
+                    minus_match = re.search(r"---\s+a/([^\s]+)", fdiff)
+                    file_path = minus_match.group(1).strip() if minus_match else "unknown_file"
+
+            file_path = file_path.strip() if file_path else "unknown_file"
 
             # Skip binary files or lockfiles
             if any(file_path.endswith(ext) for ext in [".lock", "-lock.json", ".png", ".jpg", ".pyc"]):
                 continue
+
+            # Build AST symbol list for this file (cached per parse_diff_hunks call)
+            if file_path not in _symbol_cache:
+                try:
+                    git_res = self._run_git(["show", f"HEAD:{file_path}"], cwd=root)
+                    if git_res.returncode == 0:
+                        file_content = git_res.stdout
+                    else:
+                        disk_path = self.repo_path / file_path
+                        file_content = disk_path.read_text(encoding="utf-8", errors="replace")
+                    _symbol_cache[file_path] = ast_analyzer.extract_symbols_from_source(file_content, file_path)
+                except Exception:
+                    _symbol_cache[file_path] = []
+
+            file_symbols = _symbol_cache[file_path]
 
             # Split into individual hunks: @@ -start,len +start,len @@
             raw_hunk_blocks = re.split(r"(@@\s+-[0-9,]+\s+\+[0-9,]+\s+@@)", fdiff)
@@ -218,18 +247,26 @@ class LiveGitEngine:
                 old_text = "\n".join(old_lines)
                 new_text = "\n".join(new_lines)
 
-                # Heuristic symbol detection
-                symbol = "module"
-                for nline in new_lines:
-                    if "class " in nline:
-                        symbol = nline.strip().split("class ")[1].split("(")[0].split(":")[0].strip()
-                        break
-                    elif "def " in nline:
-                        symbol = nline.strip().split("def ")[1].split("(")[0].strip()
-                        break
-                    elif "function " in nline:
-                        symbol = nline.strip().split("function ")[1].split("(")[0].strip()
-                        break
+                # AST-first symbol resolution, fallback to regex heuristic
+                symbol = None
+                try:
+                    symbol = ast_analyzer.find_enclosing_symbol(file_symbols, start_line)
+                except Exception:
+                    symbol = None
+
+                if symbol is None:
+                    # Regex heuristic fallback
+                    symbol = "module"
+                    for nline in new_lines:
+                        if "class " in nline:
+                            symbol = nline.strip().split("class ")[1].split("(")[0].split(":")[0].strip()
+                            break
+                        elif "def " in nline:
+                            symbol = nline.strip().split("def ")[1].split("(")[0].strip()
+                            break
+                        elif "function " in nline:
+                            symbol = nline.strip().split("function ")[1].split("(")[0].strip()
+                            break
 
                 hunk_idx += 1
                 hunk_id = f"live_hunk_{hunk_idx}"

@@ -75,4 +75,55 @@ class AstAnalyzer:
                 return s["name"]
         return None
 
+    def semantic_diff(self, before_source: str, after_source: str, file_path: str) -> dict:
+        """
+        Compare two versions of a source file at the AST symbol level.
+        Returns a dict with:
+          - added: list of symbol names added
+          - removed: list of symbol names removed
+          - modified: list of symbol names present in both but with different line counts (heuristic for body change)
+          - summary: human-readable one-liner describing the dominant change
+        """
+        def _symbols(src: str) -> dict:
+            """Return {name: end_line - start_line} for every function/class in src."""
+            result = {}
+            if not src:
+                return result
+            syms = self.extract_symbols_from_source(src, file_path)
+            for s in syms:
+                result[s["name"]] = s.get("end_line", s["start_line"]) - s["start_line"]
+            return result
+
+        before = _symbols(before_source)
+        after = _symbols(after_source)
+
+        before_names = set(before)
+        after_names = set(after)
+
+        added = sorted(after_names - before_names)
+        removed = sorted(before_names - after_names)
+        modified = sorted(
+            n for n in before_names & after_names
+            if abs(before[n] - after[n]) > 2  # body grew/shrank by >2 lines
+        )
+
+        parts = []
+        if added:
+            parts.append(f"Added: {', '.join(added[:3])}")
+        if removed:
+            parts.append(f"Removed: {', '.join(removed[:3])}")
+        if modified:
+            parts.append(f"Modified: {', '.join(modified[:3])}")
+        if not parts:
+            summary = "No symbol-level changes detected (formatting or comment change)."
+        else:
+            summary = "; ".join(parts) + f" in {file_path.split('/')[-1]}."
+
+        return {
+            "added": added,
+            "removed": removed,
+            "modified": modified,
+            "summary": summary,
+        }
+
 ast_analyzer = AstAnalyzer()

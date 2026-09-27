@@ -34,28 +34,78 @@ class CausalEngine:
 
         # 2. Key Investigation Nodes (Column 1: Discovery)
         last_investigation_id = None
+        _last_inv_node = None
+        pending_reasoning = []
         if events:
             for evt in events:
+                if evt.action_type == "AGENT_REASONING_NOTE":
+                    # Capture verbatim agent reasoning
+                    reasoning_text = (
+                        (evt.target.query if evt.target else "") or
+                        (evt.payload.output_summary if evt.payload else "") or ""
+                    ).strip()
+                    if reasoning_text:
+                        pending_reasoning.append(reasoning_text)
+                    continue  # don't emit a separate node for reasoning events
+
                 if evt.action_type in ("REPOSITORY_SEARCH", "SYMBOL_SEARCH", "FILE_READ"):
                     inv_id = f"node_inv_{evt.event_id}"
-                    query = evt.target.query or evt.target.file_path or "code search"
-                    nodes.append(CausalNode(
+                    query = (evt.target.query if evt.target else "") or (evt.target.file_path if evt.target else "") or ""
+
+                    # Extract tool name from the payload summary ("tool_name: {args}")
+                    raw_summary = (evt.payload.output_summary or "") if evt.payload else ""
+                    tool_name_from_payload = raw_summary.split(":")[0].strip() if ":" in raw_summary else ""
+
+                    # Build a readable title: prefer "tool_name: query", fall back to action_type
+                    if query:
+                        title = f"{tool_name_from_payload or evt.action_type}: {query}"
+                    elif tool_name_from_payload:
+                        title = tool_name_from_payload
+                    else:
+                        title = evt.action_type
+
+                    # Build a readable subtitle: strip empty-arg noise like "tool: {}" or "tool: {}"
+                    if raw_summary and raw_summary != f"{tool_name_from_payload}: {{}}":
+                        subtitle = raw_summary
+                    elif query:
+                        subtitle = query
+                    else:
+                        subtitle = f"Observed event #{evt.sequence_number}"
+
+                    node_data = {"event_id": evt.event_id, "timestamp": evt.timestamp, "action_type": evt.action_type}
+                    if pending_reasoning:
+                        node_data["reasoning"] = "\n\n".join(pending_reasoning)
+                        node_data["reasoning_epistemic"] = "DECLARED"
+                        pending_reasoning = []
+                    new_node = CausalNode(
                         id=inv_id,
                         type="AGENT_INVESTIGATION",
-                        title=f"{evt.action_type}: {query[:30]}",
-                        subtitle=evt.payload.output_summary[:40] if evt.payload else f"Observed event #{evt.sequence_number}",
+                        title=title,
+                        subtitle=subtitle,
                         epistemic_status="OBSERVED",
                         confidence_score=0.98,
-                        data={"event_id": evt.event_id, "timestamp": evt.timestamp}
-                    ))
+                        data=node_data
+                    )
+                    nodes.append(new_node)
                     edges.append(CausalEdge(
                         id=f"e_{req_node_id}_{inv_id}",
                         source=req_node_id,
                         target=inv_id,
                         relation="MOTIVATED_BY",
-                        confidence=0.99
+                        confidence=0.99 if events else 1.0
                     ))
                     last_investigation_id = inv_id
+                    _last_inv_node = new_node
+
+            # If trailing reasoning notes exist, attach them to the last investigation node
+            if pending_reasoning and _last_inv_node is not None:
+                existing = _last_inv_node.data.get("reasoning", "")
+                trailing = "\n\n".join(pending_reasoning)
+                _last_inv_node.data["reasoning"] = (
+                    f"{existing}\n\n{trailing}".strip() if existing else trailing
+                )
+                _last_inv_node.data["reasoning_epistemic"] = "DECLARED"
+
         else:
             # Synthesize git & AST parser investigation node for live repo mode
             inv_id = "node_inv_git_ast"
@@ -73,7 +123,7 @@ class CausalEngine:
                 source=req_node_id,
                 target=inv_id,
                 relation="MOTIVATED_BY",
-                confidence=0.99
+                confidence=1.0
             ))
             last_investigation_id = inv_id
 
@@ -97,38 +147,62 @@ class CausalEngine:
                 source=source_for_dec,
                 target=dec_id,
                 relation="DISCOVERED_IN",
-                confidence=0.96
+                confidence=round(change.confidence_score, 2)
             ))
 
-            # 4. Code Hunk Nodes (Column 3: Code Hunks)
+            # 4. Changed File Nodes (Column 3: Grouped by File rather than symbols)
+            from collections import OrderedDict
+            file_hunks_map: Dict[str, List[DiffHunk]] = OrderedDict()
             for hunk in change.hunks:
-                hunk_node_id = f"node_hunk_{hunk.id}"
-                if not first_hunk_id:
-                    first_hunk_id = hunk_node_id
+                fpath = hunk.file_path or "unknown_file"
+                file_hunks_map.setdefault(fpath, []).append(hunk)
 
-                fname = hunk.file_path.split("/")[-1] if hunk.file_path else "file"
-                sym = hunk.symbol if hunk.symbol and hunk.symbol != "unknown" else fname
+            for file_path, f_hunks in file_hunks_map.items():
+                first_h = f_hunks[0]
+                file_node_id = f"node_file_{first_h.id}"
+                if not first_hunk_id:
+                    first_hunk_id = file_node_id
+
+                fname = file_path.split("/")[-1] if file_path else "file"
+                symbols = [h.symbol for h in f_hunks if h.symbol and h.symbol != "unknown"]
+                sym_str = ", ".join(symbols[:3])
+                if len(symbols) > 3:
+                    sym_str += f" +{len(symbols)-3}"
+
+                hunk_count_str = f"{len(f_hunks)} hunk{'s' if len(f_hunks) != 1 else ''}"
+                subtitle = f"{hunk_count_str} · {sym_str}" if sym_str else f"{hunk_count_str} ({first_h.line_range})"
+
+                # Aggregate stats for this file
+                max_blast = max((h.jev_result.blast_radius.score for h in f_hunks if h.jev_result and h.jev_result.blast_radius), default=1.0)
+                conf_list = [h.jev_result.classification.confidence for h in f_hunks if h.jev_result and h.jev_result.classification]
+                avg_conf = (sum(conf_list) / len(conf_list)) if conf_list else 0.9
+                primary_cat = first_h.jev_result.classification.category if first_h.jev_result and first_h.jev_result.classification else change.category
 
                 nodes.append(CausalNode(
-                    id=hunk_node_id,
-                    type="CODE_HUNK" if hunk.change_type == "MODIFIED" else "LOGICAL_CHANGE",
-                    title=f"{sym}",
-                    subtitle=f"{fname} ({hunk.line_range})",
+                    id=file_node_id,
+                    type="CODE_HUNK" if any(h.change_type == "MODIFIED" for h in f_hunks) else "LOGICAL_CHANGE",
+                    title=f"{fname}",
+                    subtitle=subtitle,
                     epistemic_status="OBSERVED",
-                    confidence_score=hunk.jev_result.classification.confidence,
+                    confidence_score=round(avg_conf, 2),
                     data={
-                        "file_path": hunk.file_path,
-                        "line_range": hunk.line_range,
-                        "jev_category": hunk.jev_result.classification.category,
-                        "blast_score": hunk.jev_result.blast_radius.score,
+                        "file_path": file_path,
+                        "hunk_count": len(f_hunks),
+                        "symbols": symbols,
+                        "line_ranges": [h.line_range for h in f_hunks if h.line_range],
+                        "hunk_ids": [h.id for h in f_hunks],
+                        "jev_category": primary_cat,
+                        "blast_score": max_blast,
+                        "provenance": "git_diff_observed" if first_h.jev_result and first_h.jev_result.source == "live_api" else "calibrated_engine",
+                        "jev_source": first_h.jev_result.source if first_h.jev_result else "calibrated",
                     }
                 ))
                 edges.append(CausalEdge(
-                    id=f"e_{dec_id}_{hunk_node_id}",
+                    id=f"e_{dec_id}_{file_node_id}",
                     source=dec_id,
-                    target=hunk_node_id,
-                    relation="INTRODUCED" if hunk.change_type == "ADDED" else "MODIFIES",
-                    confidence=0.96
+                    target=file_node_id,
+                    relation="INTRODUCED" if all(h.change_type == "ADDED" for h in f_hunks) else "MODIFIES",
+                    confidence=round(avg_conf, 2)
                 ))
 
         # 5. Risk & Learning Concept Nodes (Column 4: Impact & Risk)
@@ -144,7 +218,7 @@ class CausalEngine:
                     subtitle=f"Jev {item.level} Risk ({int(item.jev_attention_probability * 100)}% prob)",
                     epistemic_status="OBSERVED",
                     confidence_score=item.jev_attention_probability,
-                    data={"action_required": item.action_required, "detail": item.detail}
+                    data={"action_required": item.action_required, "detail": item.detail, "provenance": "jev_risk_engine", "risk_index": a_idx}
                 ))
                 edges.append(CausalEdge(
                     id=f"e_{hunk_target}_{risk_node_id}",
@@ -156,14 +230,17 @@ class CausalEngine:
 
         if grounded_concept:
             concept_node_id = "node_grounded_concept"
+            _concept_epistemic = "OBSERVED" if changes and any(
+                h.jev_result.source == "live_api" for ch in changes for h in ch.hunks
+            ) else "INFERRED"
             nodes.append(CausalNode(
                 id=concept_node_id,
                 type="LEARNING_CONCEPT",
                 title=f"Concept: {grounded_concept.name[:30]}",
                 subtitle=grounded_concept.headline[:40],
-                epistemic_status="INFERRED",
+                epistemic_status=_concept_epistemic,
                 confidence_score=0.95,
-                data={"what_it_is": grounded_concept.what_it_is}
+                data={"what_it_is": grounded_concept.what_it_is, "provenance": "jev_classification_inferred"}
             ))
             edges.append(CausalEdge(
                 id=f"e_{hunk_target}_{concept_node_id}",
