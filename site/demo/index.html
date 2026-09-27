@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentTrace — Interactive Demo</title>
+  <meta name="description" content="Experience the AgentTrace Developer Control Plane directly in your browser. Explore Causal Lineage, AST Blast Radius, and Codebase Learning Hub." />
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              navy: '#080d1a',
+              sidebar: '#0c1326',
+              card: '#0f172a',
+              cardHover: '#141f36',
+              border: '#1e293b',
+              indigo: '#5b6bff',
+              cyan: '#08fff0',
+              lime: '#7ff0a8',
+              rose: '#ff6b8b',
+              amber: '#ffcf6b'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            display: ['Geist', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Theme Styles -->
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body class="bg-[#080d1a] text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500/30 selection:text-cyan-200">
+
+  <!-- Top App Navigation -->
+  <header class="glass-nav border-b border-slate-800 px-4 py-3 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/" class="flex items-center gap-2 group" title="Return to home">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 p-[1px]">
+            <div class="w-full h-full bg-[#080d1a] rounded-[7px] flex items-center justify-center">
+              <span class="material-symbols-outlined text-cyan-400 text-lg group-hover:scale-110 transition">account_tree</span>
+            </div>
+          </div>
+          <span class="font-display font-bold text-white text-base tracking-tight">AgentTrace</span>
+        </a>
+      </div>
+
+      <div class="flex items-center gap-3 text-xs font-mono">
+        <a href="/#video-tour" class="text-slate-400 hover:text-cyan-400 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 transition flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm text-cyan-400">play_circle</span>
+          <span>Watch Video Tour</span>
+        </a>
+        <a href="/docs" class="text-slate-400 hover:text-white px-2.5 py-1 rounded bg-slate-900 border border-slate-800 transition flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm">menu_book</span>
+          <span>Setup Docs</span>
+        </a>
+        <a href="/" class="text-slate-400 hover:text-white px-2.5 py-1 rounded bg-slate-900 border border-slate-800 transition flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm">home</span>
+          <span>Overview</span>
+        </a>
+        <a href="https://github.com/SahityaBhaskar/Agent-Trace" target="_blank" rel="noopener" class="text-slate-400 hover:text-white px-2.5 py-1 rounded bg-slate-900 border border-slate-800 transition flex items-center gap-1">
+          <span>GitHub</span>
+          <span class="material-symbols-outlined text-xs">open_in_new</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Interactive Sandbox Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Helper Notice -->
+    <div class="mb-4 p-3 rounded-lg bg-indigo-950/30 border border-indigo-800/50 flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div class="flex items-center gap-2 text-indigo-200">
+        <span class="material-symbols-outlined text-cyan-400 text-base">info</span>
+        <span><strong>Live Sandbox:</strong> You are exploring pre-baked agent telemetry. To run live Git & transcript watching on your own repo, run AgentTrace locally.</span>
+      </div>
+      <a href="/docs" class="text-cyan-400 hover:underline font-mono flex items-center gap-1">
+        Local Setup Guide <span class="material-symbols-outlined text-xs">arrow_forward</span>
+      </a>
+    </div>
+
+    <!-- Main Interactive Container -->
+    <div id="demo-workspace" class="border border-slate-800 rounded-xl shadow-2xl overflow-hidden bg-[#0c1326] min-h-[620px]">
+      <div class="p-16 text-center text-slate-400">
+        <div class="inline-block animate-spin text-cyan-400 mb-2">
+          <span class="material-symbols-outlined text-2xl">sync</span>
+        </div>
+        <p class="text-xs font-mono">Loading full interactive control plane...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Simple Footer -->
+  <footer class="py-4 border-t border-slate-800/80 text-center text-xs font-mono text-slate-500">
+    AgentTrace Control Plane • Running client-side via Vercel Edge • <a href="https://github.com/SahityaBhaskar/Agent-Trace" target="_blank" rel="noopener" class="text-slate-400 hover:underline">GitHub</a>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="/assets/demo.js"></script>
+  <script src="/assets/main.js"></script>
+</body>
+</html>

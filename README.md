@@ -2,7 +2,7 @@
 
 > *Git diff tells you **WHAT** changed. AgentTrace tells you **WHY** it changed, **HOW** the agent arrived there, **WHAT** it affects, and **WHAT** you should learn from it.*
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python) ![Tests](https://img.shields.io/badge/tests-151%20passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-green) ![Docker](https://img.shields.io/badge/docker-compose-blue?logo=docker)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python) ![Tests](https://img.shields.io/badge/tests-151%20passing-brightgreen) ![Docker](https://img.shields.io/badge/docker-compose-blue?logo=docker)
 
 ---
 
@@ -77,7 +77,7 @@ AgentTrace is an **explainability and developer learning layer** for AI coding a
 
 ```bash
 # 1. Clone & install (30 seconds)
-git clone https://github.com/your-org/agent-trace.git
+git clone https://github.com/SahityaBhaskar/Agent-Trace.git
 cd agent-trace && python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
@@ -102,7 +102,7 @@ python -m agent_trace.cli analyze /path/to/your/repo --serve
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/agent-trace.git
+git clone https://github.com/SahityaBhaskar/Agent-Trace.git
 cd agent-trace
 
 # Create a virtual environment and install dependencies

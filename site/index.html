@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentTrace — Developer Control Plane for AI Coding Agents</title>
+  <meta name="description" content="Git diff tells you WHAT changed. AgentTrace tells you WHY, HOW, and what it affects. Local-first explainability and control plane for Claude Code, Cursor, and AI agents." />
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              navy: '#080d1a',
+              sidebar: '#0c1326',
+              card: '#0f172a',
+              cardHover: '#141f36',
+              border: '#1e293b',
+              indigo: '#5b6bff',
+              cyan: '#08fff0',
+              lime: '#7ff0a8',
+              rose: '#ff6b8b',
+              amber: '#ffcf6b'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            display: ['Geist', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Theme Styles -->
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body class="bg-[#080d1a] text-slate-100 min-h-screen relative selection:bg-indigo-500/30 selection:text-cyan-200">
+
+  <!-- Background Ambient Glows -->
+  <div class="radial-glow radial-glow-cyan top-[-100px] left-1/2 -translate-x-1/2"></div>
+  <div class="radial-glow radial-glow-indigo top-[600px] right-[-150px]"></div>
+
+  <!-- ── Top Navigation Bar ────────────────────────────────────────── -->
+  <header class="sticky top-0 z-50 glass-nav">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-2.5 group shrink-0">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 p-[1px] shadow-lg shadow-indigo-500/20">
+          <div class="w-full h-full bg-[#080d1a] rounded-[7px] flex items-center justify-center">
+            <span class="material-symbols-outlined text-cyan-400 text-lg group-hover:scale-110 transition">account_tree</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="font-display font-extrabold text-base sm:text-lg text-white tracking-tight whitespace-nowrap">AgentTrace</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 whitespace-nowrap">v1.0</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav Links -->
+      <nav class="hidden lg:flex items-center gap-6 xl:gap-8 text-xs xl:text-sm font-medium text-slate-300">
+        <a href="#problem" class="whitespace-nowrap hover:text-cyan-400 transition">Problem</a>
+        <a href="#features" class="whitespace-nowrap hover:text-cyan-400 transition">Features</a>
+        <a href="#video-tour" class="whitespace-nowrap hover:text-cyan-400 transition flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-sm text-cyan-400">play_circle</span>
+          <span>Video Tour</span>
+        </a>
+        <a href="/docs" class="whitespace-nowrap hover:text-cyan-400 transition">Docs</a>
+        <a href="https://github.com/SahityaBhaskar/Agent-Trace" target="_blank" rel="noopener" class="whitespace-nowrap hover:text-cyan-400 transition flex items-center gap-1">
+          <span>GitHub</span>
+          <span class="material-symbols-outlined text-xs">open_in_new</span>
+        </a>
+      </nav>
+
+      <!-- Action Buttons -->
+      <div class="hidden sm:flex items-center gap-2.5 shrink-0">
+        <a href="https://github.com/SahityaBhaskar/Agent-Trace" target="_blank" rel="noopener" class="btn btn-secondary btn-sm flex items-center gap-1.5 whitespace-nowrap">
+          <span class="material-symbols-outlined text-base">star</span>
+          <span>Star on GitHub</span>
+        </a>
+      </div>
+
+      <!-- Mobile Menu Button -->
+      <button id="mobile-menu-btn" class="lg:hidden text-slate-400 hover:text-white p-2 shrink-0">
+        <span class="material-symbols-outlined text-2xl">menu</span>
+      </button>
+    </div>
+
+    <!-- Mobile Nav Dropdown -->
+    <div id="mobile-menu" class="hidden lg:hidden border-b border-slate-800 bg-[#0c1326] px-4 py-3 space-y-2 font-medium text-sm">
+      <a href="#problem" class="block py-1 text-slate-300 hover:text-cyan-400">The Problem</a>
+      <a href="#features" class="block py-1 text-slate-300 hover:text-cyan-400">Features</a>
+      <a href="#video-tour" class="block py-1 text-slate-300 hover:text-cyan-400 flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-sm text-cyan-400">play_circle</span>
+        <span>Video Tour</span>
+      </a>
+      <a href="/docs" class="block py-1 text-slate-300 hover:text-cyan-400">Docs & Setup</a>
+      <a href="https://github.com/SahityaBhaskar/Agent-Trace" target="_blank" rel="noopener" class="block py-1 text-slate-300 hover:text-cyan-400">GitHub</a>
+    </div>
+  </header>
+
+  <!-- ── Hero Section ─────────────────────────────────────────────── -->
+  <section class="relative pt-16 pb-20 md:pt-24 md:pb-28 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+      
+      <!-- Eyebrow Badge -->
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-700 text-xs font-mono text-cyan-300 mb-6 shadow-md">
+        <span class="pulse-dot pulse-dot-green"></span>
+        <span>Developer Control Plane for AI Coding Agents</span>
+        <span class="text-slate-500">|</span>
+        <span class="text-slate-400">Bob 2.0 . Claude Code · Cursor</span>
+      </div>
+
+      <!-- Main Headline -->
+      <h1 class="text-4xl sm:text-6xl lg:text-7xl font-display font-extrabold tracking-tight max-w-4xl mx-auto leading-[1.1] mb-6">
+        Git diff tells you <span class="text-slate-400 line-through decoration-rose-500/80">WHAT</span>.<br />
+        <span class="gradient-text gradient-glow">AgentTrace tells you WHY.</span>
+      </h1>
+
+      <!-- Subtitle -->
+      <p class="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed mb-10">
+        AI coding agents inspect 18+ files, trace execution paths, introduce abstractions, and hand back an opaque diff. 
+        AgentTrace transforms raw agent activity into instant <strong class="text-slate-200">Causal Lineage</strong>, <strong class="text-slate-200">AST Blast Radius</strong>, and <strong class="text-slate-200">Grounded Architectural Clarity</strong>.
+      </p>
+
+      <!-- Primary Action Buttons -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+        <a href="#video-tour" class="btn btn-primary px-7 py-3 text-base w-full sm:w-auto">
+          <span class="material-symbols-outlined text-lg">play_circle</span>
+          <span>Watch Video Tour</span>
+        </a>
+        <a href="/docs" class="btn btn-secondary px-6 py-3 text-base w-full sm:w-auto">
+          <span class="material-symbols-outlined text-lg">terminal</span>
+          <span>Quickstart Setup Guide</span>
+        </a>
+      </div>
+
+      <!-- Terminal Quickstart Preview -->
+      <div class="max-w-xl mx-auto terminal-window text-left">
+        <div class="terminal-header">
+          <div class="terminal-dots">
+            <span class="terminal-dot bg-rose-500/80"></span>
+            <span class="terminal-dot bg-amber-500/80"></span>
+            <span class="terminal-dot bg-emerald-500/80"></span>
+          </div>
+          <span class="text-[11px] font-mono text-slate-400">terminal — 90s quickstart</span>
+          <button data-copy="pip install agent-trace && agent-trace report --scenario payment --serve" class="text-slate-400 hover:text-white" title="Copy command">
+            <span class="material-symbols-outlined text-sm">content_copy</span>
+          </button>
+        </div>
+        <div class="terminal-body space-y-1">
+          <div><span class="code-prompt">$</span> pip install agent-trace</div>
+          <div><span class="code-prompt">$</span> agent-trace report --scenario payment --serve</div>
+          <div class="text-slate-500 pt-1"># Control Plane launched at http://127.0.0.1:8000</div>
+          <div class="text-emerald-400">✓ Jev System 1 active (434ms) · 15 causal nodes resolved</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── The Problem: Cognitive Disconnection Crisis ───────────────── -->
+  <section id="problem" class="py-20 border-t border-slate-800/80 bg-[#0a0f20]/60 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="text-xs font-mono font-semibold uppercase tracking-wider text-rose-400 block mb-2">The Hidden Engineering Crisis</span>
+        <h2 class="text-3xl sm:text-4xl font-display font-bold text-white mb-4">
+          The Better the AI Agent, The More Context You Lose.
+        </h2>
+        <p class="text-slate-400 text-base leading-relaxed">
+          A developer types: <em class="text-slate-200">"Add retry handling to payment requests."</em> The agent inspects 18+ files, traces 4 paths, creates a new utility, refactors 3 callers, and dumps a 400-line git diff.
+        </p>
+      </div>
+
+      <!-- Before / After Grid Comparison -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch mb-14">
+        <!-- Without AgentTrace (The Opaque Tax) -->
+        <div class="p-6 sm:p-8 rounded-2xl bg-rose-950/10 border border-rose-900/40 relative">
+          <div class="flex items-center gap-2 mb-4 text-rose-400 font-mono text-xs font-bold uppercase tracking-wider">
+            <span class="material-symbols-outlined text-base">close</span>
+            Without AgentTrace: The Cognitive Tax
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">47 Minutes of PR Guesswork</h3>
+          <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+            Developers spend 47 minutes per AI pull request trying to manually reverse-engineer decisions the agent already made.
+          </p>
+
+          <div class="space-y-3 font-mono text-xs">
+            <div class="p-3 bg-slate-950/80 rounded-lg border border-slate-800 text-slate-400">
+              <span class="text-rose-400">✕</span> "Why did it touch RefundService when I asked for payment retries?"
+            </div>
+            <div class="p-3 bg-slate-950/80 rounded-lg border border-slate-800 text-slate-400">
+              <span class="text-rose-400">✕</span> "What calls this new RetryExecutor? Will it break in production?"
+            </div>
+            <div class="p-3 bg-slate-950/80 rounded-lg border border-slate-800 text-slate-400">
+              <span class="text-rose-400">✕</span> "10,000 tokens of raw agent logs to read just to verify safety."
+            </div>
+          </div>
+        </div>
+
+        <!-- With AgentTrace (Instant Clarity) -->
+        <div class="p-6 sm:p-8 rounded-2xl bg-indigo-950/10 border border-indigo-800/50 relative">
+          <div class="flex items-center gap-2 mb-4 text-emerald-400 font-mono text-xs font-bold uppercase tracking-wider">
+            <span class="material-symbols-outlined text-base">check</span>
+            With AgentTrace: Full Control Plane
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">Instant Context & Cognitive Control</h3>
+          <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+            Every file inspection, symbol lookup, and AST modification is mapped to explicit causal lineage in under a second.
+          </p>
+
+          <div class="space-y-3 font-mono text-xs">
+            <div class="p-3 bg-slate-950/80 rounded-lg border border-emerald-900/40 text-slate-300">
+              <span class="text-emerald-400">✓</span> <strong>Causal Lineage:</strong> Found 3 identical loops in Refund & Subscription -> centralized to prevent drift.
+            </div>
+            <div class="p-3 bg-slate-950/80 rounded-lg border border-emerald-900/40 text-slate-300">
+              <span class="text-emerald-400">✓</span> <strong>AST Blast Radius:</strong> Instant transitive impact graph across 649 symbols.
+            </div>
+            <div class="p-3 bg-slate-950/80 rounded-lg border border-emerald-900/40 text-slate-300">
+              <span class="text-emerald-400">✓</span> <strong>Learning Hub:</strong> Grounded explanation of exponential backoff with jitter in your code.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Counter Bar -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div class="p-5 rounded-xl bg-slate-900/60 border border-slate-800">
+          <div class="text-2xl sm:text-3xl font-extrabold text-cyan-400 font-mono">47 min</div>
+          <div class="text-xs text-slate-400 mt-1">Average context tax saved per PR</div>
+        </div>
+        <div class="p-5 rounded-xl bg-slate-900/60 border border-slate-800">
+          <div class="text-2xl sm:text-3xl font-extrabold text-indigo-400 font-mono">151 Tests</div>
+          <div class="text-xs text-slate-400 mt-1">Passing suite with 100% test coverage</div>
+        </div>
+        <div class="p-5 rounded-xl bg-slate-900/60 border border-slate-800">
+          <div class="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono">0 Code</div>
+          <div class="text-xs text-slate-400 mt-1">Zero source files ever leave localhost</div>
+        </div>
+        <div class="p-5 rounded-xl bg-slate-900/60 border border-slate-800">
+          <div class="text-2xl sm:text-3xl font-extrabold text-amber-400 font-mono">434 ms</div>
+          <div class="text-xs text-slate-400 mt-1">Jev System 1 heuristic evaluation</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Key Capabilities Grid ────────────────────────────────────── -->
+  <section id="features" class="py-20 border-t border-slate-800/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="text-xs font-mono font-semibold uppercase tracking-wider text-cyan-400 block mb-2">Architectural Pillars</span>
+        <h2 class="text-3xl sm:text-4xl font-display font-bold text-white mb-4">
+          Everything You Need to Understand What Your AI Agent Did
+        </h2>
+        <p class="text-slate-400 text-base">
+          AgentTrace is not just another diff viewer. It's a dual-brain control plane combining real-time AST graphs, deterministic heuristics, and LLM reasoning.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Feature 1 -->
+        <div class="interactive-card p-6 flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-4">
+              <span class="material-symbols-outlined">account_tree</span>
+            </div>
+            <h3 class="text-base font-bold text-white mb-2">Causal Graph & "Ask Why"</h3>
+            <p class="text-sm text-slate-400 leading-relaxed mb-4">
+              Traces step-by-step lineage from prompt to file reads, symbol searches, and AST modifications. Click any event to ask "Why did the agent do this?" with evidence grounding.
+            </p>
+          </div>
+          <div class="pt-3 border-t border-slate-800/80 text-[11px] font-mono text-cyan-400">
+            Prompt → Discovery → Action
+          </div>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="interactive-card p-6 flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-4">
+              <span class="material-symbols-outlined">radar</span>
+            </div>
+            <h3 class="text-base font-bold text-white mb-2">Semantic Impact & Blast Radius</h3>
+            <p class="text-sm text-slate-400 leading-relaxed mb-4">
+              Real-time AST call graph builder calculates transitive dependencies across your repository. Highlights changed symbols and downstream callers that could fail at runtime.
+            </p>
+          </div>
+          <div class="pt-3 border-t border-slate-800/80 text-[11px] font-mono text-cyan-400">
+            AST Call Hierarchy & Downstream Callers
+          </div>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="interactive-card p-6 flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-4">
+              <span class="material-symbols-outlined">verified</span>
+            </div>
+            <h3 class="text-base font-bold text-white mb-2">Production Readiness Scoring</h3>
+            <p class="text-sm text-slate-400 leading-relaxed mb-4">
+              Dual-brain evaluation checks breaking risks, test coverage, and blast radius. Assigns an actionable confidence score (e.g. 84/B) with highlighted attention items before merge.
+            </p>
+          </div>
+          <div class="pt-3 border-t border-slate-800/80 text-[11px] font-mono text-cyan-400">
+            Jev System 1 + Gemini System 2
+          </div>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="interactive-card p-6 flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4">
+              <span class="material-symbols-outlined">school</span>
+            </div>
+            <h3 class="text-base font-bold text-white mb-2">Codebase Learning Hub</h3>
+            <p class="text-sm text-slate-400 leading-relaxed mb-4">
+              Turns AI modifications into engineering growth. Identifies patterns (e.g. Retry with Jitter, Idempotency Keys) and explains them using your actual codebase snippets.
+            </p>
+          </div>
+          <div class="pt-3 border-t border-slate-800/80 text-[11px] font-mono text-cyan-400">
+            Every PR is a Teaching Moment
+          </div>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="interactive-card p-6 flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 mb-4">
+              <span class="material-symbols-outlined">visibility</span>
+            </div>
+            <h3 class="text-base font-bold text-white mb-2">Agent Transcript Watcher</h3>
+            <p class="text-sm text-slate-400 leading-relaxed mb-4">
+              Automatically discovers active sessions from Claude Code (<code class="text-xs">~/.claude/projects/</code>), Cursor, and local streams. Streams live telemetry into the dashboard.
+            </p>
+          </div>
+          <div class="pt-3 border-t border-slate-800/80 text-[11px] font-mono text-cyan-400">
+            Zero-Config Local Auto-Discovery
+          </div>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="interactive-card p-6 flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-4">
+              <span class="material-symbols-outlined">shield</span>
+            </div>
+            <h3 class="text-base font-bold text-white mb-2">100% Local-First Privacy</h3>
+            <p class="text-sm text-slate-400 leading-relaxed mb-4">
+              Designed from day one for strict on-premise privacy. AgentTrace runs on your laptop or private CI runner; your proprietary source code never leaves your workstation.
+            </p>
+          </div>
+          <div class="pt-3 border-t border-slate-800/80 text-[11px] font-mono text-cyan-400">
+            Zero Cloud Storage of Repo Source
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Product Demo Video Walkthrough ──────────────────────────── -->
+  <section id="video-tour" class="py-20 border-t border-slate-800/80 bg-[#070b18] relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-12">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/80 border border-indigo-700/60 text-indigo-300 font-mono text-xs mb-3">
+          <span class="material-symbols-outlined text-sm text-cyan-400">play_circle</span>
+          <span>Full Product Walkthrough</span>
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-display font-bold text-white mb-3">
+          See AgentTrace in Action
+        </h2>
+        <p class="text-slate-400 text-sm leading-relaxed">
+          Watch how AgentTrace captures an active Claude Code refactor session, traces 15 causal events, constructs the AST blast radius, and turns raw changes into engineering insights.
+        </p>
+      </div>
+
+      <!-- Video Player Frame -->
+      <div class="max-w-5xl mx-auto rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl overflow-hidden">
+        <!-- Video Header Bar -->
+        <div class="px-4 py-3 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+          <div class="flex items-center gap-2">
+            <span class="terminal-dot bg-rose-500/80"></span>
+            <span class="terminal-dot bg-amber-500/80"></span>
+            <span class="terminal-dot bg-emerald-500/80"></span>
+            <span class="text-slate-300 font-semibold ml-2">AgentTrace Live Demo — Payment Retry Refactor</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <a href="https://photos.google.com/" target="_blank" rel="noopener" class="text-slate-400 hover:text-cyan-400 transition flex items-center gap-1 text-[11px]">
+              <span>Google Photos</span>
+              <span class="material-symbols-outlined text-xs">open_in_new</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Video Player -->
+        <div class="relative bg-black aspect-video flex items-center justify-center">
+          <video 
+            controls 
+            playsinline 
+            preload="metadata" 
+            poster="/assets/images/01-dashboard.png" 
+            class="w-full h-full object-contain"
+          >
+            <source src="/assets/demo-video.mp4" type="video/mp4" />
+            <p class="text-slate-400 text-xs p-8 text-center">
+              Your browser does not support HTML5 video. You can <a href="/assets/demo-video.mp4" class="text-cyan-400 underline">download the demo video here</a>.
+            </p>
+          </video>
+        </div>
+
+        <!-- Chapter Markers & Feature Highlights -->
+        <div class="p-4 bg-slate-900/70 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-slate-400">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">⚡ Live Agent Ingestion</span>
+            <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">🔍 Causal "Ask Why"</span>
+            <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">📊 AST Blast Radius</span>
+            <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">🎓 Learning Hub</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Why Local-First Section ──────────────────────────────────── -->
+  <section class="py-20 border-t border-slate-800/80 bg-[#0a0f20]/40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <span class="text-xs font-mono font-semibold uppercase tracking-wider text-indigo-400 block mb-2">Local Engineering Architecture</span>
+          <h2 class="text-3xl font-display font-bold text-white mb-4">
+            Why AgentTrace Runs on Your Machine
+          </h2>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            While this marketing website is hosted on Vercel so anyone can explore the concept and interactive demo, 
+            the real AgentTrace engine runs on your local machine or internal CI runners. Here's why this architecture is essential:
+          </p>
+
+          <div class="space-y-4 text-xs font-mono">
+            <div class="flex items-start gap-3 p-3 rounded-lg bg-slate-900 border border-slate-800">
+              <span class="material-symbols-outlined text-cyan-400 text-base">lock</span>
+              <div>
+                <strong class="text-slate-200 block mb-0.5">Zero Proprietary Code Exfiltration</strong>
+                <p class="text-slate-400">Your Git tree, uncommitted diffs, and private repositories remain strictly on your local disk.</p>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-3 p-3 rounded-lg bg-slate-900 border border-slate-800">
+              <span class="material-symbols-outlined text-indigo-400 text-base">cable</span>
+              <div>
+                <strong class="text-slate-200 block mb-0.5">Direct Socket & File Transcript Watching</strong>
+                <p class="text-slate-400">AgentTrace watches Claude Code (<code class="text-indigo-300">~/.claude/projects/</code>) and Cursor in real-time as they emit events.</p>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-3 p-3 rounded-lg bg-slate-900 border border-slate-800">
+              <span class="material-symbols-outlined text-emerald-400 text-base">speed</span>
+              <div>
+                <strong class="text-slate-200 block mb-0.5">Sub-Second Native AST Analysis</strong>
+                <p class="text-slate-400">Fast AST traversal over local files generates full transitive call graphs without network roundtrips.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="terminal-window">
+          <div class="terminal-header">
+            <div class="terminal-dots">
+              <span class="terminal-dot bg-rose-500/80"></span>
+              <span class="terminal-dot bg-amber-500/80"></span>
+              <span class="terminal-dot bg-emerald-500/80"></span>
+            </div>
+            <span class="text-[11px] font-mono text-slate-400">local-daemon-architecture</span>
+          </div>
+          <div class="terminal-body text-xs font-mono space-y-2 text-slate-300">
+            <div class="text-slate-500"># Start local background watcher on your project:</div>
+            <div><span class="code-prompt">$</span> agent-trace daemon --watch ~/.claude/projects/</div>
+            <div class="pt-2 text-cyan-300">● Watching 4 active Claude Code workspace streams...</div>
+            <div class="text-slate-400">  → Session detected: ses_payment_retry (15 events)</div>
+            <div class="text-slate-400">  → Git status: 3 modified, 1 untracked</div>
+            <div class="text-slate-400">  → AST Call Graph: 649 nodes, 1390 edges constructed in 18ms</div>
+            <div class="text-emerald-400 pt-1">✓ Change Intelligence ready at http://127.0.0.1:8000</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Quickstart Section ───────────────────────────────────────── -->
+  <section class="py-20 border-t border-slate-800/80">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="text-3xl font-display font-bold text-white mb-3">
+        Ready to take control of your AI agents?
+      </h2>
+      <p class="text-slate-400 text-sm max-w-xl mx-auto mb-8">
+        Get started in under 90 seconds. No API key required to run with the pre-baked test scenarios.
+      </p>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 text-left mb-8 shadow-xl">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4 text-xs font-mono">
+          <span class="text-slate-400 font-bold uppercase">Quick Install (Python 3.10+)</span>
+          <button data-copy="git clone https://github.com/SahityaBhaskar/Agent-Trace.git && cd agent-trace && pip install -r requirements.txt && python -m agent_trace.cli report --scenario payment --serve" class="text-cyan-400 hover:text-white flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">content_copy</span>
+            <span>Copy All</span>
+          </button>
+        </div>
+        <pre class="font-mono text-xs text-slate-300 space-y-1.5 overflow-x-auto">
+<code><span class="text-slate-500"># 1. Clone repository</span>
+git clone https://github.com/SahityaBhaskar/Agent-Trace.git
+cd agent-trace && python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+<span class="text-slate-500"># 2. Launch the pre-baked Payment Retry report & control plane</span>
+python -m agent_trace.cli report --scenario payment --serve
+
+<span class="text-slate-500"># 3. Analyze your own live repo</span>
+python -m agent_trace.cli analyze /path/to/repo --serve</code></pre>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-center gap-4">
+        <a href="/docs" class="btn btn-primary px-6 py-2.5">
+          <span>Read Comprehensive Setup Documentation</span>
+          <span class="material-symbols-outlined text-base">arrow_forward</span>
+        </a>
+        <a href="#video-tour" class="btn btn-secondary px-6 py-2.5">
+          <span>Watch Video Tour</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ───────────────────────────────────────────────────── -->
+  <footer class="border-t border-slate-800 py-12 bg-[#050812] text-xs text-slate-500 font-mono">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-cyan-400 text-lg">account_tree</span>
+        <span class="text-slate-300 font-bold text-sm">AgentTrace</span>
+        <span>•</span>
+        <span>Developer Control Plane for AI Coding Agents</span>
+      </div>
+
+      <div class="flex items-center gap-6 text-slate-400">
+        <a href="/docs" class="hover:text-cyan-400 transition">Docs</a>
+        <a href="#video-tour" class="hover:text-cyan-400 transition">Video Tour</a>
+        <a href="https://github.com/SahityaBhaskar/Agent-Trace" target="_blank" rel="noopener" class="hover:text-cyan-400 transition">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="/assets/main.js"></script>
+</body>
+</html>

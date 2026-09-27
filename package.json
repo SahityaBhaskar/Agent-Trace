@@ -1,0 +1,21 @@
+{
+  "name": "agent-trace-site",
+  "version": "1.0.0",
+  "description": "AgentTrace - Developer Control Plane for AI Coding Agents (Marketing, Interactive Demo, & Setup Docs)",
+  "scripts": {
+    "dev": "npx serve site -p 3000",
+    "start": "npx serve site -p 3000",
+    "build": "echo 'Static site ready for Vercel deployment.'"
+  },
+  "keywords": [
+    "ai-agents",
+    "developer-tools",
+    "explainability",
+    "claude-code",
+    "cursor",
+    "control-plane",
+    "ast-analysis"
+  ],
+  "author": "AgentTrace Team",
+  "license": "MIT"
+}
