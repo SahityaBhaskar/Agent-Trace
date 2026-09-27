@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentTrace Documentation — Local Setup & Agent Integration</title>
+  <meta name="description" content="Complete setup guide for AgentTrace. Connect Claude Code, Cursor, and AI agents with your local codebase and run the developer control plane." />
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              navy: '#080d1a',
+              sidebar: '#0c1326',
+              card: '#0f172a',
+              cardHover: '#141f36',
+              border: '#1e293b',
+              indigo: '#5b6bff',
+              cyan: '#08fff0',
+              lime: '#7ff0a8',
+              rose: '#ff6b8b',
+              amber: '#ffcf6b'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            display: ['Geist', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Theme Styles -->
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body class="bg-[#080d1a] text-slate-100 min-h-screen selection:bg-indigo-500/30 selection:text-cyan-200">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass-nav border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <a href="/" class="flex items-center gap-2.5 group shrink-0">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 p-[1px]">
+          <div class="w-full h-full bg-[#080d1a] rounded-[7px] flex items-center justify-center">
+            <span class="material-symbols-outlined text-cyan-400 text-lg group-hover:scale-110 transition">account_tree</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="font-display font-extrabold text-base text-white tracking-tight whitespace-nowrap">AgentTrace Docs</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 whitespace-nowrap">Setup</span>
+        </div>
+      </a>
+
+      <div class="flex items-center gap-3 sm:gap-4 text-xs font-mono shrink-0">
+        <a href="/" class="text-slate-400 hover:text-white transition whitespace-nowrap">Overview</a>
+        <a href="/#video-tour" class="text-slate-400 hover:text-cyan-400 transition whitespace-nowrap flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm text-cyan-400">play_circle</span>
+          <span>Video Tour</span>
+        </a>
+        <a href="https://github.com/SahityaBhaskar/Agent-Trace" target="_blank" rel="noopener" class="text-slate-400 hover:text-white transition flex items-center gap-1 whitespace-nowrap">
+          <span>GitHub</span>
+          <span class="material-symbols-outlined text-xs">open_in_new</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Documentation Layout -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      
+      <!-- Sticky Sidebar Navigation -->
+      <aside class="hidden lg:block lg:col-span-3">
+        <div class="sticky top-24 space-y-6 text-xs font-mono">
+          <div>
+            <span class="text-slate-500 uppercase tracking-wider text-[10px] block mb-2 font-bold">Getting Started</span>
+            <ul class="space-y-1.5 text-slate-300">
+              <li><a href="#why-local" class="hover:text-cyan-400 block py-1">Why Local First?</a></li>
+              <li><a href="#quickstart" class="hover:text-cyan-400 block py-1">90-Second Quickstart</a></li>
+              <li><a href="#installation" class="hover:text-cyan-400 block py-1">Installation Guide</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <span class="text-slate-500 uppercase tracking-wider text-[10px] block mb-2 font-bold">Agent Integrations</span>
+            <ul class="space-y-1.5 text-slate-300">
+              <li><a href="#claude-code" class="hover:text-cyan-400 block py-1">Claude Code Watcher</a></li>
+              <li><a href="#cursor" class="hover:text-cyan-400 block py-1">Cursor & Aider</a></li>
+              <li><a href="#custom-agents" class="hover:text-cyan-400 block py-1">Custom Agent Tracing</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <span class="text-slate-500 uppercase tracking-wider text-[10px] block mb-2 font-bold">Configuration & Reference</span>
+            <ul class="space-y-1.5 text-slate-300">
+              <li><a href="#dual-brain" class="hover:text-cyan-400 block py-1">Dual-Brain Engine</a></li>
+              <li><a href="#cli-reference" class="hover:text-cyan-400 block py-1">CLI Commands & Flags</a></li>
+              <li><a href="#faq" class="hover:text-cyan-400 block py-1">FAQ & Troubleshooting</a></li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="lg:col-span-9 space-y-12">
+        
+        <!-- Header Info -->
+        <div>
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-indigo-950/60 border border-indigo-800/40 text-indigo-300 font-mono text-xs mb-3">
+            <span>Local Engineering Guide</span>
+          </div>
+          <h1 class="text-3xl sm:text-4xl font-display font-extrabold text-white mb-3">
+            Setting Up AgentTrace Locally
+          </h1>
+          <p class="text-slate-400 text-sm leading-relaxed max-w-2xl">
+            This guide covers how to install AgentTrace, hook it into your active AI coding agent sessions (Bob 2.0, Claude Code, Cursor), and launch your private developer control plane.
+          </p>
+        </div>
+
+        <!-- Section 1: Why Local First -->
+        <section id="why-local" class="p-6 rounded-xl bg-slate-900/60 border border-slate-800 space-y-4">
+          <div class="flex items-center gap-2 text-cyan-400 font-bold text-sm">
+            <span class="material-symbols-outlined">security</span>
+            <h2>Why AgentTrace Runs Locally on Your Machine</h2>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            While this website is hosted on Vercel so teams can explore documentation and test pre-baked scenarios, 
+            <strong>AgentTrace is intentionally designed as a local-first developer tool</strong>:
+          </p>
+          <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside">
+            <li><strong>Zero Source Code Transmission:</strong> Your private git tree, uncommitted diffs, and ASTs are parsed on your workstation. No proprietary code is sent to third-party cloud storage.</li>
+            <li><strong>Direct Session Discovery:</strong> AgentTrace monitors active local transcript directories (such as Claude Code's <code class="text-cyan-300 font-mono">~/.claude/projects/</code>) without requiring manual exports.</li>
+            <li><strong>Sub-Second AST Parsing:</strong> Transitive call graphs and symbol impact are calculated natively with zero network overhead.</li>
+          </ul>
+        </section>
+
+        <!-- Section 2: 90-Second Quickstart -->
+        <section id="quickstart" class="space-y-4">
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <span class="text-cyan-400 font-mono">01.</span>
+            <span>90-Second Quickstart</span>
+          </h2>
+          <p class="text-xs text-slate-400">
+            No API keys are required to test with pre-baked scenarios. Run these commands in your terminal:
+          </p>
+
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <div class="terminal-dots">
+                <span class="terminal-dot bg-rose-500/80"></span>
+                <span class="terminal-dot bg-amber-500/80"></span>
+                <span class="terminal-dot bg-emerald-500/80"></span>
+              </div>
+              <span class="text-[11px] font-mono text-slate-400">bash</span>
+              <button data-copy="git clone https://github.com/SahityaBhaskar/Agent-Trace.git && cd agent-trace && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && python -m agent_trace.cli report --scenario payment --serve" class="text-cyan-400 hover:text-white" title="Copy">
+                <span class="material-symbols-outlined text-sm">content_copy</span>
+              </button>
+            </div>
+            <div class="terminal-body space-y-1 text-xs">
+              <div class="text-slate-500"># 1. Clone repository & install dependencies</div>
+              <div><span class="code-prompt">$</span> git clone https://github.com/SahityaBhaskar/Agent-Trace.git</div>
+              <div><span class="code-prompt">$</span> cd agent-trace && python -m venv .venv && source .venv/bin/activate</div>
+              <div><span class="code-prompt">$</span> pip install -r requirements.txt</div>
+              <div class="pt-2 text-slate-500"># 2. Launch the pre-baked Payment Retry scenario report & web server</div>
+              <div><span class="code-prompt">$</span> python -m agent_trace.cli report --scenario payment --serve</div>
+              <div class="pt-2 text-emerald-400">✓ Control Plane serving at http://127.0.0.1:8000</div>
+              <div class="text-slate-400">  → Open your browser to explore Causal Graph, Blast Radius, & Learning Hub</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 3: Installation Across Platforms -->
+        <section id="installation" class="space-y-4">
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <span class="text-cyan-400 font-mono">02.</span>
+            <span>Platform Installation Options</span>
+          </h2>
+
+          <!-- Tab Group -->
+          <div data-tab-group="os" class="flex items-center gap-2 border-b border-slate-800 pb-2">
+            <button data-tab-btn="macos" class="px-3 py-1 rounded text-xs font-mono font-semibold bg-indigo-600 text-white border border-indigo-500 transition">macOS</button>
+            <button data-tab-btn="linux" class="px-3 py-1 rounded text-xs font-mono font-semibold bg-slate-800 text-slate-400 border border-slate-700 transition">Linux</button>
+            <button data-tab-btn="windows" class="px-3 py-1 rounded text-xs font-mono font-semibold bg-slate-800 text-slate-400 border border-slate-700 transition">Windows (WSL)</button>
+            <button data-tab-btn="docker" class="px-3 py-1 rounded text-xs font-mono font-semibold bg-slate-800 text-slate-400 border border-slate-700 transition">Docker</button>
+          </div>
+
+          <!-- macOS Tab -->
+          <div data-tab-content="os" data-tab-id="macos" class="terminal-window">
+            <div class="terminal-body text-xs space-y-1">
+              <div class="text-slate-500"># Requires Python 3.10 or higher</div>
+              <div><span class="code-prompt">$</span> brew install python@3.11</div>
+              <div><span class="code-prompt">$</span> python3 -m venv .venv && source .venv/bin/activate</div>
+              <div><span class="code-prompt">$</span> pip install agent-trace</div>
+            </div>
+          </div>
+
+          <!-- Linux Tab -->
+          <div data-tab-content="os" data-tab-id="linux" class="terminal-window hidden">
+            <div class="terminal-body text-xs space-y-1">
+              <div class="text-slate-500"># Debian / Ubuntu</div>
+              <div><span class="code-prompt">$</span> sudo apt update && sudo apt install -y python3-venv python3-pip git</div>
+              <div><span class="code-prompt">$</span> python3 -m venv .venv && source .venv/bin/activate</div>
+              <div><span class="code-prompt">$</span> pip install agent-trace</div>
+            </div>
+          </div>
+
+          <!-- Windows Tab -->
+          <div data-tab-content="os" data-tab-id="windows" class="terminal-window hidden">
+            <div class="terminal-body text-xs space-y-1">
+              <div class="text-slate-500"># Recommended: Run inside WSL2 Ubuntu terminal</div>
+              <div><span class="code-prompt">wsl$</span> python3 -m venv .venv && source .venv/bin/activate</div>
+              <div><span class="code-prompt">wsl$</span> pip install agent-trace</div>
+              <div><span class="code-prompt">wsl$</span> python -m agent_trace.cli report --scenario payment --serve</div>
+            </div>
+          </div>
+
+          <!-- Docker Tab -->
+          <div data-tab-content="os" data-tab-id="docker" class="terminal-window hidden">
+            <div class="terminal-body text-xs space-y-1">
+              <div class="text-slate-500"># Run using bundled docker-compose.yml</div>
+              <div><span class="code-prompt">$</span> docker-compose up --build</div>
+              <div class="text-slate-400"># Control plane mapped to http://localhost:8000</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 4: Connecting With AI Agents -->
+        <section id="claude-code" class="space-y-4">
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <span class="text-cyan-400 font-mono">03.</span>
+            <span>Connecting With AI Agents</span>
+          </h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Claude Code -->
+            <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+              <div class="flex items-center gap-2 text-indigo-400 font-bold text-sm">
+                <span class="material-symbols-outlined">smart_toy</span>
+                <h3>Claude Code Integration</h3>
+              </div>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                Claude Code writes session transcripts to <code class="text-indigo-300 font-mono">~/.claude/projects/</code>. AgentTrace automatically discovers and streams these sessions.
+              </p>
+              <div class="bg-slate-950 p-2.5 rounded border border-slate-800 text-xs font-mono text-slate-300">
+                <span class="code-prompt">$</span> agent-trace daemon --watch ~/.claude/projects/
+              </div>
+            </div>
+
+            <!-- Cursor -->
+            <div id="cursor" class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+              <div class="flex items-center gap-2 text-cyan-400 font-bold text-sm">
+                <span class="material-symbols-outlined">code</span>
+                <h3>Cursor & Live Git Tree</h3>
+              </div>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                AgentTrace inspects real-time working tree changes made by Cursor or any agent. It parses git diffs directly against AST symbol tables.
+              </p>
+              <div class="bg-slate-950 p-2.5 rounded border border-slate-800 text-xs font-mono text-slate-300">
+                <span class="code-prompt">$</span> agent-trace analyze /path/to/repo --diff auto --serve
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 5: Dual Brain Engine Configuration -->
+        <section id="dual-brain" class="space-y-4">
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <span class="text-cyan-400 font-mono">04.</span>
+            <span>Dual-Brain Engine Configuration</span>
+          </h2>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            AgentTrace uses a dual-brain architecture to balance instant response times with deep architectural synthesis:
+          </p>
+
+          <div class="space-y-3">
+            <div class="p-4 rounded-lg bg-slate-900/80 border border-slate-800 flex items-start gap-3">
+              <span class="material-symbols-outlined text-amber-400 text-lg mt-0.5">bolt</span>
+              <div>
+                <strong class="text-xs text-slate-200 block mb-0.5">System 1 (Jev TypeSafe Heuristic Engine)</strong>
+                <p class="text-xs text-slate-400">Runs locally in ~400ms. Classifies change types, computes blast radius scores, and flags breaking risks deterministically without external LLM API calls.</p>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-lg bg-slate-900/80 border border-slate-800 flex items-start gap-3">
+              <span class="material-symbols-outlined text-cyan-400 text-lg mt-0.5">psychology</span>
+              <div>
+                <strong class="text-xs text-slate-200 block mb-0.5">System 2 (Gemini Deep Reasoning Engine)</strong>
+                <p class="text-xs text-slate-400">Enabled when <code class="text-cyan-300 font-mono">GEMINI_API_KEY</code> is set. Powers the 5-tier architectural flow synthesis and answers "Ask Why" grounded queries.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <span class="text-[11px] font-mono text-slate-400">Environment Setup (.env)</span>
+              <button data-copy="export GEMINI_API_KEY=your_key_here&#10;export PORT=8000" class="text-cyan-400 hover:text-white" title="Copy">
+                <span class="material-symbols-outlined text-sm">content_copy</span>
+              </button>
+            </div>
+            <div class="terminal-body text-xs font-mono space-y-1">
+              <div class="text-slate-500"># Optional: Enable deep reasoning synthesis</div>
+              <div>export GEMINI_API_KEY="AIzaSy..."</div>
+              <div class="text-slate-500 pt-1"># Optional: Control Plane server port (default: 8000)</div>
+              <div>export PORT=8000</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 6: CLI Reference -->
+        <section id="cli-reference" class="space-y-4">
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <span class="text-cyan-400 font-mono">05.</span>
+            <span>CLI Commands Reference</span>
+          </h2>
+
+          <div class="overflow-x-auto rounded-lg border border-slate-800">
+            <table class="w-full text-left text-xs font-mono">
+              <thead class="bg-slate-900 text-slate-400 uppercase text-[10px] border-b border-slate-800">
+                <tr>
+                  <th class="p-3">Command</th>
+                  <th class="p-3">Options</th>
+                  <th class="p-3">Description</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800 text-slate-300 bg-slate-950/60">
+                <tr>
+                  <td class="p-3 text-cyan-400">agent-trace report</td>
+                  <td class="p-3 text-slate-400">--scenario [payment|auth] --serve</td>
+                  <td class="p-3">Prints scenario report in terminal and opens web control plane.</td>
+                </tr>
+                <tr>
+                  <td class="p-3 text-cyan-400">agent-trace analyze &lt;path&gt;</td>
+                  <td class="p-3 text-slate-400">--diff [auto|staged|HEAD~1] --serve</td>
+                  <td class="p-3">Analyzes live repository AST and git changes with impact graph.</td>
+                </tr>
+                <tr>
+                  <td class="p-3 text-cyan-400">agent-trace daemon</td>
+                  <td class="p-3 text-slate-400">--watch &lt;path&gt; --port &lt;port&gt;</td>
+                  <td class="p-3">Runs background watcher for Claude Code or agent transcripts.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section 7: FAQ -->
+        <section id="faq" class="space-y-4 pt-4 border-t border-slate-800">
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <span class="text-cyan-400 font-mono">06.</span>
+            <span>Frequently Asked Questions</span>
+          </h2>
+
+          <div class="space-y-3 text-xs">
+            <div class="p-4 rounded-lg bg-slate-900/60 border border-slate-800">
+              <strong class="text-slate-200 block mb-1">Does AgentTrace require sending my codebase to third-party clouds?</strong>
+              <p class="text-slate-400 leading-relaxed">No. AgentTrace is designed to run 100% on your workstation or internal CI server. Your repository code, file contents, and commit history never leave your machine.</p>
+            </div>
+
+            <div class="p-4 rounded-lg bg-slate-900/60 border border-slate-800">
+              <strong class="text-slate-200 block mb-1">Why is this marketing website hosted on Vercel if the tool runs locally?</strong>
+              <p class="text-slate-400 leading-relaxed">The Vercel-hosted site provides a public presentation of what AgentTrace is, lets visitors test the interactive demo sandbox directly in the browser, and provides documentation for developers looking to install it locally.</p>
+            </div>
+
+            <div class="p-4 rounded-lg bg-slate-900/60 border border-slate-800">
+              <strong class="text-slate-200 block mb-1">Can I integrate AgentTrace into our GitHub Actions or GitLab CI pipeline?</strong>
+              <p class="text-slate-400 leading-relaxed">Yes! You can run <code class="text-indigo-300 font-mono">python -m agent_trace.cli analyze . --diff auto</code> in CI as a PR gate to block breaking changes, calculate blast radius, and generate pull request comments.</p>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 py-8 bg-[#050812] text-xs text-slate-500 font-mono text-center">
+    AgentTrace Documentation • <a href="/" class="text-slate-400 hover:underline">Home</a> • <a href="/#video-tour" class="text-slate-400 hover:underline">Video Tour</a> • <a href="https://github.com/SahityaBhaskar/Agent-Trace" target="_blank" rel="noopener" class="text-slate-400 hover:underline">GitHub</a>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="/assets/main.js"></script>
+</body>
+</html>
