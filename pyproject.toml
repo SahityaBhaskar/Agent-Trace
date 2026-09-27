@@ -40,8 +40,11 @@ dev = [
 agenttrace = "agent_trace.cli:main"
 
 [project.urls]
-Repository = "https://github.com/your-org/agent-trace"
-Issues = "https://github.com/your-org/agent-trace/issues"
+Repository = "https://github.com/SahityaBhaskar/Agent-Trace"
+Issues = "https://github.com/SahityaBhaskar/Agent-Trace/issues"
+
+[tool.vercel]
+entrypoint = "api/index.py"
 
 [tool.setuptools.packages.find]
 where = ["."]
