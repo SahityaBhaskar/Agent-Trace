@@ -1,11 +1,9 @@
 {
-  "version": 2,
-  "cleanUrls": true,
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": null,
   "outputDirectory": "site",
-  "rewrites": [
-    { "source": "/demo", "destination": "/demo.html" },
-    { "source": "/docs", "destination": "/docs.html" }
-  ],
+  "cleanUrls": true,
   "headers": [
     {
       "source": "/assets/(.*)",
