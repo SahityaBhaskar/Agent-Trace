@@ -3,6 +3,26 @@ from pydantic import BaseModel, Field
 from .session import EpistemicStatus, SessionEvent
 from .jev_types import ChangeClassification, JevEvaluationResult
 from .graph import CausalGraphData
+from .impact_graph import SemanticImpactGraph
+
+
+class AgentDecision(BaseModel):
+    """A single reconstructed decision point in the agent's reasoning chain."""
+    step: int
+    action: str                       # What the agent did
+    reasoning: str = ""               # Why — inferred or declared
+    epistemic_status: EpistemicStatus = "INFERRED"
+
+
+class AgentJourney(BaseModel):
+    """
+    LLM-synthesized reconstruction of how the agent reasoned from the initial
+    user request through to the final code changes.
+    Populated by GeminiClient.synthesize_agent_journey() when a transcript is available.
+    """
+    summary: str = ""                              # 2-3 sentence narrative
+    decisions: List[AgentDecision] = Field(default_factory=list)
+    enriched: bool = False                         # True when Gemini generated this
 
 class DiffHunk(BaseModel):
     id: str
@@ -47,6 +67,33 @@ class ExecutionFlowDiff(BaseModel):
     after_flow: FlowDescription
     mermaid_diagram: str
 
+class DeepDiveItem(BaseModel):
+    title: str
+    body: str
+
+class ReferenceDoc(BaseModel):
+    label: str
+    url: str
+    excerpt: str = ""
+
+class ConceptLesson(BaseModel):
+    """AI-generated, grounded lesson for a single LogicalChange."""
+    change_id: str
+    category_label: str           # e.g. "Concurrency · Lock Mechanism"
+    summary: str                  # 1-sentence grounded summary referencing actual symbols
+    why_now: str                  # why this concept matters for THIS specific change
+    deep_dive: List[DeepDiveItem] = Field(default_factory=list)
+    reference_docs: List[ReferenceDoc] = Field(default_factory=list)
+
+class LearningMeta(BaseModel):
+    """Realtime AI-enriched learning metadata attached to every ScenarioData."""
+    why_now: str                  # grounded banner text for Active Concept tab
+    category: str                 # e.g. "Reliability", "Concurrency", "Security"
+    deep_dive: List[DeepDiveItem] = Field(default_factory=list)
+    reference_docs: List[ReferenceDoc] = Field(default_factory=list)
+    change_lessons: List[ConceptLesson] = Field(default_factory=list)
+    enriched: bool = False        # False = fallback/empty, True = Gemini-generated
+
 class GroundedConcept(BaseModel):
     name: str
     headline: str
@@ -55,6 +102,7 @@ class GroundedConcept(BaseModel):
     code_snippet: str
     pitfalls_to_watch: List[str]
     related_concepts: List[str]
+    learning_meta: Optional[LearningMeta] = None
 
 class AttentionItem(BaseModel):
     title: str
@@ -62,6 +110,13 @@ class AttentionItem(BaseModel):
     detail: str
     action_required: str
     jev_attention_probability: float
+    llm_summary: Optional[str] = None   # LLM-synthesized human-readable summary
+    symbol: Optional[str] = None
+    file_path: Optional[str] = None
+    hunk_id: Optional[str] = None
+    diff_snippet: Optional[str] = None
+    graph_context: Optional[Dict[str, Any]] = None
+    llm_analysis: Optional[Dict[str, Any]] = None
 
 class SessionStats(BaseModel):
     files_inspected: int
@@ -82,3 +137,5 @@ class ScenarioData(BaseModel):
     causal_graph: CausalGraphData
     grounded_concept: GroundedConcept
     attention_items: List[AttentionItem]
+    semantic_impact_graph: Optional[SemanticImpactGraph] = None
+    agent_journey: Optional[AgentJourney] = None   # How the agent got here

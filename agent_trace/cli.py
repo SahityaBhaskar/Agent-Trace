@@ -110,8 +110,16 @@ def main():
     # test-jev command
     subparsers.add_parser("test-jev", help="Test live connection to Jev TypeSafe AI API")
 
+    # impact-graph command
+    ig_parser = subparsers.add_parser("impact-graph", help="Build semantic impact graph for a repository diff using Serena")
+    ig_parser.add_argument("repo_path", nargs="?", default=".", help="Path to a Git repository (default: current directory)")
+    ig_parser.add_argument("--repo", type=str, default=None, help="Explicit flag for repository path")
+    ig_parser.add_argument("--diff", type=str, default="auto", help="Git diff target (default: auto)")
+    ig_parser.add_argument("--depth", type=int, default=2, help="Maximum traversal depth (default: 2)")
+    ig_parser.add_argument("--output", type=str, default=None, help="Directory to write graph.json + report.md (optional)")
+
     # Shortcut: if first argument is a path (not a known command), redirect to analyze
-    if len(sys.argv) > 1 and sys.argv[1] not in ("analyze", "report", "serve", "test-jev", "-h", "--help"):
+    if len(sys.argv) > 1 and sys.argv[1] not in ("analyze", "report", "serve", "test-jev", "impact-graph", "-h", "--help"):
         target_path = sys.argv[1]
         sys.argv = [sys.argv[0], "analyze", target_path] + sys.argv[2:]
 
@@ -146,6 +154,139 @@ def main():
     elif args.command == "serve":
         run_server(port=args.port, default_repo=args.repo)
 
+    elif args.command == "impact-graph":
+        target = args.repo or args.repo_path or "."
+        repo_path = Path(target).expanduser().resolve()
+
+        from .engine.live_git import live_git_engine
+        live_git_engine.repo_path = repo_path
+        if not live_git_engine.is_git_repo():
+            print(f"{RED}Error: '{repo_path}' is not a valid git repository.{RESET}")
+            sys.exit(1)
+
+        from .engine.semantic_impact import get_impact_graph_builder
+        from .engine.serena_client import get_serena_client
+
+        serena = get_serena_client()
+        available = serena.is_available()
+        print(f"\n{BOLD}{CYAN}AgentTrace — Semantic Impact Graph{RESET}")
+        print(f"  Repository : {CYAN}{repo_path}{RESET}")
+        print(f"  Diff target: {args.diff}")
+        print(f"  Max depth  : {args.depth}")
+        print(f"  Serena MCP : {GREEN}● available{RESET}" if available else f"  Serena MCP : {YELLOW}● unavailable (AST fallback){RESET}")
+        print()
+
+        meta = live_git_engine.get_repo_meta()
+        raw_diff, mode_desc = live_git_engine.get_diff(args.diff)
+        hunks = live_git_engine.parse_diff_hunks(raw_diff)
+
+        if not hunks:
+            print(f"{YELLOW}No diff hunks found for target '{args.diff}'.{RESET}")
+            sys.exit(0)
+
+        print(f"  Hunks found: {BOLD}{len(hunks)}{RESET} across {BOLD}{len(set(h.file_path for h in hunks))}{RESET} files")
+        print(f"  Building semantic impact graph...\n")
+
+        builder = get_impact_graph_builder(repo_path=str(repo_path), max_depth=args.depth)
+        graph = builder.build(
+            hunks=hunks,
+            change_set_id=meta.get("commit_hash", "live"),
+            repository=meta.get("name", "repo"),
+        )
+
+        # Terminal summary
+        changed = [n for n in graph.nodes if n.change_status in ("added", "modified", "deleted")]
+        consumers = [n for n in graph.nodes if n.change_status == "unchanged" and n.node_type == "symbol"]
+        unattended = graph.get_unattended_nodes()
+        print(f"{BOLD}{GREEN}Impact Graph Built:{RESET}")
+        print(f"  Nodes       : {BOLD}{len(graph.nodes)}{RESET}  (changed: {len(changed)}, consumers: {len(consumers)}, unattended: {len(unattended)})")
+        print(f"  Edges       : {BOLD}{len(graph.edges)}{RESET}")
+        print(f"  Chunks      : {BOLD}{len(graph.chunks)}{RESET}")
+        print()
+
+        if changed:
+            print(f"{BOLD}{MAGENTA}Changed Symbols:{RESET}")
+            for n in changed[:10]:
+                status_color = GREEN if n.change_status == "added" else (RED if n.change_status == "deleted" else YELLOW)
+                print(f"  {status_color}[{(n.change_status or '').upper()}]{RESET} {BOLD}{n.name}{RESET}  {DIM}({n.file}){RESET}")
+            if len(changed) > 10:
+                print(f"  {DIM}... and {len(changed) - 10} more{RESET}")
+            print()
+
+        if unattended:
+            print(f"{BOLD}{YELLOW}⚠️  Unattended Symbols (Omission Risk — untouched in diff):{RESET}")
+            for n in unattended[:8]:
+                risk = n.data.get("omission_risk", "high").replace("_", " ").upper()
+                print(f"  • {BOLD}{YELLOW}{n.name}{RESET}  {DIM}({n.file}) [Risk: {risk}]{RESET}")
+            if len(unattended) > 8:
+                print(f"  {DIM}... and {len(unattended) - 8} more{RESET}")
+            print()
+
+        if consumers:
+            print(f"{BOLD}{CYAN}Affected Consumers (references found):{RESET}")
+            for n in consumers[:8]:
+                conf = n.data.get("confidence", 0)
+                src = n.data.get("evidence_source", "?")
+                is_un = " [UNATTENDED]" if n in unattended else ""
+                print(f"  • {BOLD}{n.name}{RESET}  {DIM}{n.file}  [{src}, conf={conf:.2f}]{is_un}{RESET}")
+            if len(consumers) > 8:
+                print(f"  {DIM}... and {len(consumers) - 8} more{RESET}")
+            print()
+
+        # Optional: write output files
+        if args.output:
+            out_dir = Path(args.output)
+            out_dir.mkdir(parents=True, exist_ok=True)
+            import json as _json
+
+            graph_json = out_dir / "graph.json"
+            graph_json.write_text(graph.model_dump_json(indent=2))
+
+            nodes_json = out_dir / "nodes.json"
+            nodes_json.write_text(_json.dumps([n.model_dump() for n in graph.nodes], indent=2))
+
+            edges_json = out_dir / "edges.json"
+            edges_json.write_text(_json.dumps([e.model_dump() for e in graph.edges], indent=2))
+
+            # Markdown report
+            md_lines = [
+                f"# Semantic Impact Graph — {meta.get('name', 'repo')}",
+                f"\n**Diff:** `{args.diff}` | **Depth:** {args.depth} | **Commit:** `{meta.get('commit_hash', 'live')}`\n",
+                f"## Summary\n",
+                f"- Nodes: {len(graph.nodes)} (changed: {len(changed)}, consumers: {len(consumers)}, unattended: {len(unattended)})",
+                f"- Edges: {len(graph.edges)}",
+                f"- Chunks: {len(graph.chunks)}\n",
+                f"## Changed Symbols\n",
+            ]
+            for n in changed:
+                md_lines.append(f"- `{n.name}` ({n.change_status}) — `{n.file}`")
+            if unattended:
+                md_lines.append(f"\n## Unattended Symbols (Potential Omission Risks)\n")
+                for n in unattended:
+                    risk = n.data.get("omission_risk", "high")
+                    md_lines.append(f"- ⚠️ `{n.name}` — `{n.file}` _(risk: {risk})_")
+            md_lines.append(f"\n## Affected Consumers\n")
+            for n in consumers:
+                src = n.data.get("evidence_source", "?")
+                conf = n.data.get("confidence", 0)
+                md_lines.append(f"- `{n.name}` — `{n.file}` _(source: {src}, confidence: {conf:.2f})_")
+            md_lines.append(f"\n## Edges\n")
+            for e in graph.edges[:30]:
+                md_lines.append(f"- `{e.source}` —[{e.relationship}]→ `{e.target}` _(conf: {e.confidence:.2f}, {e.evidence_source})_")
+            if len(graph.edges) > 30:
+                md_lines.append(f"- _...and {len(graph.edges) - 30} more_")
+
+            report_md = out_dir / "report.md"
+            report_md.write_text("\n".join(md_lines))
+
+            print(f"{GREEN}Output written to:{RESET} {CYAN}{out_dir}{RESET}")
+            print(f"  • graph.json  ({graph_json.stat().st_size} bytes)")
+            print(f"  • nodes.json")
+            print(f"  • edges.json")
+            print(f"  • report.md")
+
+        print(f"\n{DIM}Launch the visual graph in the Web UI: {BOLD}python -m agent_trace.cli serve{RESET}\n")
+
     elif args.command == "test-jev":
         print_banner()
         print(f"Pinging Jev TypeSafe AI System One (`https://api.typesafe.ai/v1/systemone`)...")
@@ -154,7 +295,6 @@ def main():
     else:
         # Default action: analyze current repo
         scenario = transcript_watcher.generate_scenario_from_repo(".", diff_target="auto")
-        print_scenario_report(scenario)
         print_scenario_report(scenario)
 
 if __name__ == "__main__":
