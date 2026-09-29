@@ -120,7 +120,11 @@
         <span class="pulse-dot pulse-dot-green"></span>
         <span>Developer Control Plane for AI Coding Agents</span>
         <span class="text-slate-500">|</span>
-        <span class="text-slate-400">Bob 2.0 . Claude Code · Cursor</span>
+        <span class="text-amber-400 font-semibold flex items-center gap-1">
+          <span class="material-symbols-outlined text-xs">bolt</span> Jev System 1
+        </span>
+        <span class="text-slate-500">+</span>
+        <span class="text-cyan-300">Serena LSP</span>
       </div>
 
       <!-- Main Headline -->
@@ -132,7 +136,7 @@
       <!-- Subtitle -->
       <p class="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed mb-10">
         AI coding agents inspect 18+ files, trace execution paths, introduce abstractions, and hand back an opaque diff. 
-        AgentTrace transforms raw agent activity into instant <strong class="text-slate-200">Causal Lineage</strong>, <strong class="text-slate-200">AST Blast Radius</strong>, and <strong class="text-slate-200">Grounded Architectural Clarity</strong>.
+        AgentTrace pairs <strong class="text-amber-400 font-medium">Jev System 1 (TypeSafe AI)</strong> with <strong class="text-cyan-300 font-medium">LSP-powered symbol graph extraction</strong> and Gemini reasoning to transform raw agent activity into instant <strong class="text-slate-200">Causal Lineage</strong>, <strong class="text-slate-200">Semantic Blast Radius</strong>, and <strong class="text-slate-200">Omission Detection</strong>.
       </p>
 
       <!-- Primary Action Buttons -->
@@ -164,7 +168,8 @@
           <div><span class="code-prompt">$</span> pip install agent-trace</div>
           <div><span class="code-prompt">$</span> agent-trace report --scenario payment --serve</div>
           <div class="text-slate-500 pt-1"># Control Plane launched at http://127.0.0.1:8000</div>
-          <div class="text-emerald-400">✓ Jev System 1 active (434ms) · 15 causal nodes resolved</div>
+          <div class="text-cyan-400">✓ Serena LSP symbol graph pulled · 649 nodes, 1390 edges</div>
+          <div class="text-emerald-400">✓ Jev System 1 online (434ms) · 13 typed categories · 0 omissions</div>
         </div>
       </div>
 
@@ -224,10 +229,16 @@
 
           <div class="space-y-3 font-mono text-xs">
             <div class="p-3 bg-slate-950/80 rounded-lg border border-emerald-900/40 text-slate-300">
-              <span class="text-emerald-400">✓</span> <strong>Causal Lineage:</strong> Found 3 identical loops in Refund & Subscription -> centralized to prevent drift.
+              <span class="text-emerald-400">✓</span> <strong>Causal Lineage:</strong> Found 3 duplicate loops across Refund & Subscription -> centralized to prevent drift.
             </div>
             <div class="p-3 bg-slate-950/80 rounded-lg border border-emerald-900/40 text-slate-300">
-              <span class="text-emerald-400">✓</span> <strong>AST Blast Radius:</strong> Instant transitive impact graph across 649 symbols.
+              <span class="text-emerald-400">✓</span> <strong>LSP Symbol Graph:</strong> Serena MCP pulls 649 nodes and 1390 edges, tracing referencing symbols and callers with 0.98 confidence.
+            </div>
+            <div class="p-3 bg-slate-950/80 rounded-lg border border-emerald-900/40 text-slate-300">
+              <span class="text-emerald-400">✓</span> <strong>Jev System 1:</strong> ~400ms typed classification (`COMMONIZATION`), quantitative blast radius (3.8/5.0), and 91% attention urgency.
+            </div>
+            <div class="p-3 bg-slate-950/80 rounded-lg border border-emerald-900/40 text-slate-300">
+              <span class="text-emerald-400">✓</span> <strong>Omission Detection:</strong> Automatically flags unattended callers before silent breaking changes reach production.
             </div>
             <div class="p-3 bg-slate-950/80 rounded-lg border border-emerald-900/40 text-slate-300">
               <span class="text-emerald-400">✓</span> <strong>Learning Hub:</strong> Grounded explanation of exponential backoff with jitter in your code.
@@ -251,8 +262,8 @@
           <div class="text-xs text-slate-400 mt-1">Zero source files ever leave localhost</div>
         </div>
         <div class="p-5 rounded-xl bg-slate-900/60 border border-slate-800">
-          <div class="text-2xl sm:text-3xl font-extrabold text-amber-400 font-mono">434 ms</div>
-          <div class="text-xs text-slate-400 mt-1">Jev System 1 heuristic evaluation</div>
+          <div class="text-2xl sm:text-3xl font-extrabold text-amber-400 font-mono">~400 ms</div>
+          <div class="text-xs text-slate-400 mt-1">Jev System 1 typed decision engine</div>
         </div>
       </div>
 
@@ -294,31 +305,33 @@
         <div class="interactive-card p-6 flex flex-col justify-between">
           <div>
             <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-4">
-              <span class="material-symbols-outlined">radar</span>
+              <span class="material-symbols-outlined">hub</span>
             </div>
-            <h3 class="text-base font-bold text-white mb-2">Semantic Impact & Blast Radius</h3>
+            <h3 class="text-base font-bold text-white mb-2">LSP-Powered Symbol Graph</h3>
             <p class="text-sm text-slate-400 leading-relaxed mb-4">
-              Real-time AST call graph builder calculates transitive dependencies across your repository. Highlights changed symbols and downstream callers that could fail at runtime.
+              Connects to Language Server Protocols via Serena MCP to query <code class="text-cyan-300 font-mono text-xs">find_referencing_symbols</code> and <code class="text-cyan-300 font-mono text-xs">get_symbols_overview</code> with 0.98 confidence. Pulls complete caller graphs across 649+ nodes and separates handled vs. unattended callers.
             </p>
           </div>
-          <div class="pt-3 border-t border-slate-800/80 text-[11px] font-mono text-cyan-400">
-            AST Call Hierarchy & Downstream Callers
+          <div class="pt-3 border-t border-slate-800/80 text-[11px] font-mono text-cyan-400 flex items-center justify-between">
+            <span>Serena MCP (LSP) + AST Fallback</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-cyan-300">0.98 Conf</span>
           </div>
         </div>
 
         <!-- Feature 3 -->
         <div class="interactive-card p-6 flex flex-col justify-between">
           <div>
-            <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-4">
-              <span class="material-symbols-outlined">verified</span>
+            <div class="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4">
+              <span class="material-symbols-outlined">bolt</span>
             </div>
-            <h3 class="text-base font-bold text-white mb-2">Production Readiness Scoring</h3>
+            <h3 class="text-base font-bold text-white mb-2">Jev System 1: Real-Time Decisions</h3>
             <p class="text-sm text-slate-400 leading-relaxed mb-4">
-              Dual-brain evaluation checks breaking risks, test coverage, and blast radius. Assigns an actionable confidence score (e.g. 84/B) with highlighted attention items before merge.
+              TypeSafe AI's high-speed decision engine evaluates every diff hunk in ~400ms. Produces 13 typed categories, quantitative blast radius (1.0–5.0), and automated omission risk detection for unattended callers before heavy LLMs are invoked.
             </p>
           </div>
-          <div class="pt-3 border-t border-slate-800/80 text-[11px] font-mono text-cyan-400">
-            Jev System 1 + Gemini System 2
+          <div class="pt-3 border-t border-slate-800/80 text-[11px] font-mono text-amber-400 flex items-center justify-between">
+            <span>Sub-400ms Typed Decisions</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-950 border border-amber-800 text-amber-300">Jev System 1</span>
           </div>
         </div>
 
@@ -432,6 +445,106 @@
             <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">🔍 Causal "Ask Why"</span>
             <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">📊 AST Blast Radius</span>
             <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">🎓 Learning Hub</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Dual-Brain Engine Architecture ───────────────────────────── -->
+  <section class="py-20 border-t border-slate-800/80 bg-[#090e1f] relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="text-xs font-mono font-semibold uppercase tracking-wider text-amber-400 block mb-2">Core Engine Architecture</span>
+        <h2 class="text-3xl sm:text-4xl font-display font-bold text-white mb-4">
+          Dual-Brain Architecture: Reflexes + Reasoning
+        </h2>
+        <p class="text-slate-400 text-base leading-relaxed">
+          AgentTrace pairs <strong class="text-amber-400">Jev System 1 (TypeSafe AI)</strong> with <strong class="text-cyan-400">Serena LSP</strong> and <strong class="text-indigo-400">Gemini System 2</strong>. Fast typed reflexes catch breaks in ~400ms, while deep AI synthesizes architectural flows.
+        </p>
+      </div>
+
+      <!-- Dual Brain Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <!-- System 1: Jev + Serena LSP -->
+        <div class="p-6 sm:p-8 rounded-2xl bg-amber-950/10 border border-amber-900/40 relative flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="px-2.5 py-1 rounded bg-amber-950/60 text-amber-300 border border-amber-800/60 text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-sm">bolt</span> System 1: Reflex & Structure
+              </span>
+              <span class="text-xs font-mono text-amber-400 font-bold">~400ms Sub-Second</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-3">Jev TypeSafe AI + Serena LSP</h3>
+            <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+              Before any LLM is called, Serena MCP queries native Language Server Protocols to pull the full symbol graph (649+ nodes). Jev then inspects every diff hunk with strongly typed evaluation.
+            </p>
+
+            <ul class="space-y-2.5 text-xs font-mono text-slate-300">
+              <li class="flex items-center gap-2">
+                <span class="text-amber-400">✓</span>
+                <span><strong>13 Change Taxonomies:</strong> Refactor, Commonization, API, Security</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-amber-400">✓</span>
+                <span><strong>LSP Symbol Traversal:</strong> <code class="text-cyan-300">find_referencing_symbols</code> (0.98 conf)</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-amber-400">✓</span>
+                <span><strong>Omission Risk Detection:</strong> Flags unattended callers & orphans (Rule 8)</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-amber-400">✓</span>
+                <span><strong>Blast Radius (1.0–5.0):</strong> Isolated to System-Critical scoring</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-amber-900/40 text-[11px] font-mono text-amber-400/90 flex items-center justify-between">
+            <span>TypeSafe AI REST + Local Calibrated Fallback</span>
+            <span class="text-slate-500">Zero LLM latency</span>
+          </div>
+        </div>
+
+        <!-- System 2: Gemini Deep Reasoning -->
+        <div class="p-6 sm:p-8 rounded-2xl bg-indigo-950/10 border border-indigo-900/40 relative flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="px-2.5 py-1 rounded bg-indigo-950/60 text-indigo-300 border border-indigo-800/60 text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-sm">psychology</span> System 2: Deep Reasoning
+              </span>
+              <span class="text-xs font-mono text-indigo-400 font-bold">2–4s Synthesis</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-3">Google Gemini Synthesis</h3>
+            <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+              When deep understanding is needed, Gemini takes Jev's structured telemetry and the symbol graph as factual ground truth to generate architectural insights without hallucination.
+            </p>
+
+            <ul class="space-y-2.5 text-xs font-mono text-slate-300">
+              <li class="flex items-center gap-2">
+                <span class="text-indigo-400">✓</span>
+                <span><strong>5-Tier Architectural Flow:</strong> Strategy, Capabilities, Watchouts</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-indigo-400">✓</span>
+                <span><strong>Grounded "Ask Why":</strong> Explains agent intent tied to git evidence</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-indigo-400">✓</span>
+                <span><strong>Codebase Learning Hub:</strong> Pattern extraction tailored to your repo</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-indigo-400">✓</span>
+                <span><strong>Strict Evidence Grounding:</strong> Epistemic Status (Observed / Declared / Inferred)</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-indigo-900/40 text-[11px] font-mono text-indigo-400/90 flex items-center justify-between">
+            <span>Powered by Gemini API</span>
+            <span class="text-slate-500">Grounded in Jev telemetry</span>
           </div>
         </div>
       </div>
