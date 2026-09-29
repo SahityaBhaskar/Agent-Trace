@@ -2,7 +2,7 @@
 
 > *Git diff tells you **WHAT** changed. AgentTrace tells you **WHY** it changed, **HOW** the agent arrived there, **WHAT** it affects, and **WHAT** you should learn from it.*
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python) ![Tests](https://img.shields.io/badge/tests-151%20passing-brightgreen) ![Docker](https://img.shields.io/badge/docker-compose-blue?logo=docker)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python) ![Jev System 1](https://img.shields.io/badge/Jev-System%201%20TypeSafe%20AI-orange?logo=lightning) ![Tests](https://img.shields.io/badge/tests-151%20passing-brightgreen) ![Docker](https://img.shields.io/badge/docker-compose-blue?logo=docker)
 
 ---
 
@@ -23,14 +23,17 @@ As agents become more capable, this problem compounds. **The better the agent, t
 
 ## What AgentTrace Does
 
-AgentTrace is an **explainability and developer learning layer** for AI coding agents. It sits alongside agents like Claude Code, Cursor, and Bob 2.0 and transforms raw agent activity — tool calls, git diffs, transcript events — into a structured **Change Intelligence Report** that keeps developers cognitively in control.
+AgentTrace is an **explainability and developer learning layer** for AI coding agents. Powered by a **Dual-Brain Architecture** — pairing **Jev TypeSafe AI (System 1)** for instant typed decisions with **Google Gemini (System 2)** for deep architectural synthesis — it sits alongside agents like Claude Code, Cursor, and Bob 2.0 and transforms raw agent activity into a structured **Change Intelligence Report**.
 
 | Question | Without AgentTrace | With AgentTrace |
 |---|---|---|
 | **Why did this change?** | Read the agent transcript (10,000 tokens) | One sentence, evidence-backed |
-| **What's the blast radius?** | Manually trace call graphs | Semantic Impact Graph: 649 nodes, 1390 edges, instant |
-| **Is this safe to merge?** | Hope for the best | Production Readiness score + risk flags |
+| **What's the blast radius?** | Manually trace call graphs | **Jev System 1** + Semantic Impact Graph: 649 nodes, 1390 edges, sub-second |
+| **Is this safe to merge?** | Hope for the best | **Jev Attention Scoring** (0–100%) + Production Readiness score + risk flags |
+| **Did the agent miss callers?** | Discover runtime breaks in production | **Jev Omission Detection**: automatically flags unattended symbols across callers |
 | **What can I learn?** | Nothing | Learning Hub: grounded in your actual code |
+
+> ⚡ **Powered by Jev System 1 (TypeSafe AI):** Every diff hunk is evaluated by Jev in ~400ms to assign a typed semantic category (`COMMONIZATION`, `SECURITY_RELEVANT_CHANGE`, `API_CHANGE`, etc.), calculate quantitative blast radius (1.0–5.0), evaluate breaking change risk, and detect omitted callers — all before invoking heavy LLMs.
 
 ---
 
@@ -61,13 +64,15 @@ AgentTrace is an **explainability and developer learning layer** for AI coding a
 ## Table of Contents
 
 1. [90-Second Demo](#90-second-demo)
-2. [Installation](#installation)
-3. [Quickstart](#quickstart)
-4. [Docker Deployment](#docker-deployment)
-5. [Environment Variables](#environment-variables)
-6. [Architecture Overview](#architecture-overview)
-7. [API Reference](#api-reference)
-8. [Development](#development)
+2. [Jev System 1: Real-Time Change Intelligence](#jev-system-1-real-time-change-intelligence)
+3. [Dual-Brain Architecture](#dual-brain-architecture)
+4. [Installation](#installation)
+5. [Quickstart](#quickstart)
+6. [Docker Deployment](#docker-deployment)
+7. [Environment Variables](#environment-variables)
+8. [Architecture Overview](#architecture-overview)
+9. [API Reference](#api-reference)
+10. [Development](#development)
 
 ---
 
@@ -93,6 +98,83 @@ python -m agent_trace.cli report --scenario payment --serve
 # 4. Analyze your own repo live (requires GEMINI_API_KEY)
 python -m agent_trace.cli analyze /path/to/your/repo --serve
 ```
+
+---
+
+## Jev System 1: Real-Time Change Intelligence
+
+At the heart of AgentTrace is **Jev by TypeSafe AI** — a high-speed, typed decision engine designed to evaluate code mutations in sub-second time (~400ms). Rather than waiting for heavy LLM inference to parse an entire PR diff, Jev inspects each AST-resolved code hunk and emits structured, typed telemetry that immediately populates the Causal Change Graph and Risk Engine.
+
+```
+                    ┌────────────────────────────────────────┐
+                    │               Raw Git Diff             │
+                    └───────────────────┬────────────────────┘
+                                        │
+                                        ▼
+                    ┌────────────────────────────────────────┐
+                    │   LiveGitEngine + AstAnalyzer (AST)    │
+                    └───────────────────┬────────────────────┘
+                                        │
+               ┌────────────────────────┴────────────────────────┐
+               ▼                                                 ▼
+┌───────────────────────────────┐               ┌─────────────────────────────────┐
+│     Jev System 1 (TypeSafe)   │               │   RepoGraph + Semantic Impact   │
+│  • 13 Change Classifications  │               │   • 649+ nodes, 1390+ edges     │
+│  • Blast Radius (1.0–5.0)     │               │   • Referencing symbol traces   │
+│  • Human Review Urgency (%)   │               │   • Transitive dependency depth │
+│  • Breaking Risk Detection    │               └────────────────┬────────────────┘
+│  • Omission Risk Detection    │                                │
+└──────────────┬────────────────┘                                │
+               │                                                 │
+               └────────────────────────┬────────────────────────┘
+                                        ▼
+                    ┌────────────────────────────────────────┐
+                    │      Risk & Attention Engine           │
+                    │   8-Rule Prioritized Review Queue      │
+                    └───────────────────┬────────────────────┘
+                                        ▼
+                    ┌────────────────────────────────────────┐
+                    │       Gemini System 2 Enrichment       │
+                    │   Architectural Flow & "Ask Why"       │
+                    └────────────────────────────────────────┘
+```
+
+### Core Capabilities of Jev in AgentTrace
+
+1. **Typed Change Taxonomy (13 Categories)**  
+   Classifies each hunk into a strongly typed schema (`COMMONIZATION`, `SECURITY_RELEVANT_CHANGE`, `API_CHANGE`, `REFACTOR`, `BEHAVIORAL_CHANGE`, `DATA_MODEL_CHANGE`, `DIRECT_REQUIREMENT`, etc.) rather than freeform text summaries.
+
+2. **Quantitative Blast Radius Scoring**  
+   Computes a continuous score from `1.0` to `5.0` mapped to discrete risk tiers (`isolated`, `localized`, `service_level`, and `system_critical`), letting developers instantly spot cross-boundary mutations.
+
+3. **Calibrated Human Review Urgency**  
+   Outputs an attention probability (0.0 to 1.0) for every diff hunk. Changes with >80% review urgency are immediately elevated to the senior review queue.
+
+4. **Breaking Change & Contract Verification**  
+   Flags modifications to exported interfaces, function signatures, public models, and shared utilities that could disrupt downstream consumers.
+
+5. **Omission Risk Detection (Rule 8)**  
+   When an AI agent modifies a shared function or commonizes logic across services, Jev compares handled symbols against callers discovered in the Semantic Impact Graph to detect **unattended symbols** — catching missed callers before they cause production regressions.
+
+6. **Sub-400ms Speed with Calibrated Offline Fallback**  
+   Jev runs via `https://api.typesafe.ai/v1/systemone` using your `JEV_API_KEY`. If offline or running without a key, AgentTrace's **calibrated deterministic engine** transparently takes over so all scenarios, tests, and CI runs work without interruption.
+
+---
+
+## Dual-Brain Architecture
+
+AgentTrace operates on a **Dual-Brain architecture** inspired by cognitive science, balancing ultra-fast typed reflexes with deep contextual reasoning:
+
+| Dimension | System 1: Jev (TypeSafe AI) | System 2: Google Gemini |
+|---|---|---|
+| **Role** | Instant reflex, typed classification, risk scoring | Deep reasoning, architectural synthesis, interactive Q&A |
+| **Latency** | **~400ms** (sub-second) | 2–5 seconds |
+| **Output** | Strongly typed models (`JevEvaluationResult`) | Markdown narratives, architectural flows, grounded explanations |
+| **Scope** | Per-hunk AST analysis, blast radius, omission flags | Full-PR synthesis, 5-tier architecture, cross-file lessons |
+| **Determinism** | High / reproducible | High (grounded in Jev evidence) |
+| **Failure Mode** | Local calibrated fallback (zero downtime) | Graceful degradation to local template synthesis |
+
+This dual-brain division ensures that developers get **instant UI feedback and risk badges** without waiting for LLM generation, while any generative synthesis produced by Gemini is strictly grounded in Jev's observable telemetry.
 
 ---
 
@@ -211,9 +293,9 @@ AgentTrace follows a deterministic-first, AI-augmented architecture. Every expla
 | **LiveGitEngine** | Extract raw diffs, parse hunks, resolve AST symbols, support 7 diff modes | `live_git.py` — subprocess git + AST |
 | **AstAnalyzer** | Python AST + regex fallback symbol extraction, semantic diff (added/removed/modified) | `ast_analyzer.py` — stdlib `ast` |
 | **RepoGraph** | Build a call/import graph across the repository (nodes: File, Class, Function; edges: CALLS, IMPORTS, DEFINES) | `repo_graph.py` — AST-only, thread-safe cache |
-| **JevClient** | System 1: Typed decision evaluation of each diff hunk (classification, blast radius, breaking risk, human review) | `jev_client.py` — TypeSafe AI REST + deterministic fallback |
+| **JevClient** | System 1: High-speed typed decision evaluation of each diff hunk (13 change classifications, blast radius scoring, breaking risk, human review urgency, omission detection) | `jev_client.py` — TypeSafe AI REST + deterministic fallback |
 | **CausalEngine** | Build the 4-column Causal Change Graph linking UserRequest → Investigation → Decision → CodeHunk → Risk/Concept | `causal_engine.py` |
-| **RiskEngine** | 7-rule attention engine: blast radius, breaking change, security, API contract, cross-service coupling | `risk_engine.py` |
+| **RiskEngine** | Jev-driven 8-rule attention engine: blast radius, breaking change, human review urgency, security, API contract, cross-service coupling, and omission risk | `risk_engine.py` |
 | **GeminiClient** | System 2: Grounded AI enrichment — `answer_grounded_question`, `enrich_learning_concept`, `enrich_change_lessons` | `gemini_client.py` — httpx REST |
 | **KnowledgeGraph** | Per-developer concept encounter tracker, file-backed with atomic writes | `knowledge_graph.py` |
 | **TranscriptWatcher** | Orchestrates the full pipeline: parse transcript → generate scenario → enrich → return `ScenarioData` | `transcript_watcher.py` |
@@ -327,7 +409,15 @@ Fetch the developer knowledge graph (concepts encountered across sessions).
 
 ### `GET /api/jev/status`
 
-Test live connection to the Jev TypeSafe AI API.
+Check connectivity and latency to the Jev TypeSafe AI System 1 API.
+
+```json
+{
+  "connected": true,
+  "latency_ms": 384,
+  "message": "Connected to Jev System 1 (TypeSafe AI)"
+}
+```
 
 ---
 
