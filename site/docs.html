@@ -281,23 +281,31 @@
             <span>Dual-Brain Engine Configuration</span>
           </h2>
           <p class="text-xs text-slate-400 leading-relaxed">
-            AgentTrace uses a dual-brain architecture to balance instant response times with deep architectural synthesis:
+            AgentTrace pairs <strong>Jev System 1 (TypeSafe AI)</strong> and <strong>Serena LSP</strong> with <strong>Gemini System 2</strong> to balance sub-second typed reflexes with deep architectural reasoning:
           </p>
 
           <div class="space-y-3">
             <div class="p-4 rounded-lg bg-slate-900/80 border border-slate-800 flex items-start gap-3">
               <span class="material-symbols-outlined text-amber-400 text-lg mt-0.5">bolt</span>
               <div>
-                <strong class="text-xs text-slate-200 block mb-0.5">System 1 (Jev TypeSafe Heuristic Engine)</strong>
-                <p class="text-xs text-slate-400">Runs locally in ~400ms. Classifies change types, computes blast radius scores, and flags breaking risks deterministically without external LLM API calls.</p>
+                <strong class="text-xs text-amber-300 block mb-0.5">System 1: Jev TypeSafe AI & Omission Detection (~400ms)</strong>
+                <p class="text-xs text-slate-400">High-speed typed decision model. Evaluates each diff hunk across 13 change categories (`COMMONIZATION`, `SECURITY_RELEVANT_CHANGE`, `API_CHANGE`, etc.), scores quantitative blast radius (1.0–5.0), and flags breaking risks and unattended callers. Connects to TypeSafe AI via <code class="text-amber-300 font-mono">JEV_API_KEY</code>, with a built-in calibrated deterministic fallback for offline resilience.</p>
               </div>
             </div>
 
             <div class="p-4 rounded-lg bg-slate-900/80 border border-slate-800 flex items-start gap-3">
-              <span class="material-symbols-outlined text-cyan-400 text-lg mt-0.5">psychology</span>
+              <span class="material-symbols-outlined text-cyan-400 text-lg mt-0.5">hub</span>
               <div>
-                <strong class="text-xs text-slate-200 block mb-0.5">System 2 (Gemini Deep Reasoning Engine)</strong>
-                <p class="text-xs text-slate-400">Enabled when <code class="text-cyan-300 font-mono">GEMINI_API_KEY</code> is set. Powers the 5-tier architectural flow synthesis and answers "Ask Why" grounded queries.</p>
+                <strong class="text-xs text-cyan-300 block mb-0.5">Symbol Graph: Serena MCP (Language Server Protocol)</strong>
+                <p class="text-xs text-slate-400">Queries native LSPs over stdio with 0.98 confidence (<code class="text-cyan-300 font-mono">find_referencing_symbols</code>, <code class="text-cyan-300 font-mono">get_symbols_overview</code>). Traverses 649+ nodes and partitions referencing symbols into handled vs. unattended callers before passing them into Jev.</p>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-lg bg-slate-900/80 border border-slate-800 flex items-start gap-3">
+              <span class="material-symbols-outlined text-indigo-400 text-lg mt-0.5">psychology</span>
+              <div>
+                <strong class="text-xs text-indigo-300 block mb-0.5">System 2: Gemini Deep Reasoning Engine (2–4s)</strong>
+                <p class="text-xs text-slate-400">Enabled when <code class="text-indigo-300 font-mono">GEMINI_API_KEY</code> is configured. Synthesizes the 5-tier architectural flow and powers grounded "Ask Why" answers grounded in Jev's observable telemetry.</p>
               </div>
             </div>
           </div>
@@ -305,12 +313,14 @@
           <div class="terminal-window">
             <div class="terminal-header">
               <span class="text-[11px] font-mono text-slate-400">Environment Setup (.env)</span>
-              <button data-copy="export GEMINI_API_KEY=your_key_here&#10;export PORT=8000" class="text-cyan-400 hover:text-white" title="Copy">
+              <button data-copy="export JEV_API_KEY=jv_your_key_here&#10;export GEMINI_API_KEY=your_key_here&#10;export PORT=8000" class="text-cyan-400 hover:text-white" title="Copy">
                 <span class="material-symbols-outlined text-sm">content_copy</span>
               </button>
             </div>
             <div class="terminal-body text-xs font-mono space-y-1">
-              <div class="text-slate-500"># Optional: Enable deep reasoning synthesis</div>
+              <div class="text-slate-500"># Optional: Jev TypeSafe AI System 1 API Key (must start with jv_)</div>
+              <div>export JEV_API_KEY="jv_..."</div>
+              <div class="text-slate-500 pt-1"># Optional: Google Gemini API Key for deep reasoning</div>
               <div>export GEMINI_API_KEY="AIzaSy..."</div>
               <div class="text-slate-500 pt-1"># Optional: Control Plane server port (default: 8000)</div>
               <div>export PORT=8000</div>
