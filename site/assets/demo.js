@@ -110,9 +110,13 @@ class AgentTraceDemo {
             <span class="material-symbols-outlined text-sm">verified</span>
             Tests: ${data.stats.tests_run}/${data.stats.tests_run}
           </div>
-          <div class="bg-indigo-950/40 px-2.5 py-1 rounded border border-indigo-800/50 text-indigo-300 flex items-center gap-1">
-            <span class="material-symbols-outlined text-sm">speed</span>
-            Jev: 434ms
+          <div class="bg-cyan-950/40 px-2.5 py-1 rounded border border-cyan-800/50 text-cyan-300 flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">hub</span>
+            Serena LSP: 649 Nodes
+          </div>
+          <div class="bg-amber-950/40 px-2.5 py-1 rounded border border-amber-800/50 text-amber-300 flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">bolt</span>
+            Jev System 1: 434ms
           </div>
         </div>
       </div>
@@ -341,16 +345,34 @@ class AgentTraceDemo {
     return `
       <div class="space-y-5">
         ${attention.length > 0 ? `
-          <div class="bg-rose-950/20 border border-rose-800/40 p-4 rounded-xl">
-            <div class="flex items-center gap-2 mb-2 text-rose-300 font-semibold text-xs uppercase font-mono">
-              <span class="material-symbols-outlined text-base">warning</span>
-              Developer Attention Required
+            <div class="flex items-center justify-between mb-3 text-rose-300 font-semibold text-xs uppercase font-mono">
+              <span class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">warning</span>
+                Developer Attention Required
+              </span>
+              <span class="text-[10px] text-amber-300 font-mono flex items-center gap-1">
+                <span class="material-symbols-outlined text-xs">bolt</span> Jev System 1 Evaluated
+              </span>
             </div>
             ${attention.map(item => `
-              <div class="mb-2 last:mb-0">
-                <strong class="text-xs text-rose-200">${item.title}</strong>
-                <p class="text-xs text-rose-300/80 mt-0.5">${item.detail}</p>
-                <div class="mt-1 text-[11px] text-cyan-300 font-mono">Action: ${item.action_required}</div>
+              <div class="mb-3 last:mb-0 p-3 rounded-lg bg-slate-950/80 border border-rose-900/40">
+                <div class="flex items-center justify-between gap-2 mb-1">
+                  <strong class="text-xs text-rose-200">${item.title}</strong>
+                  ${item.jev_attention_probability ? `
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800/40 flex items-center gap-1">
+                      <span class="material-symbols-outlined text-xs">bolt</span>
+                      Jev Attention: ${(item.jev_attention_probability * 100).toFixed(0)}%
+                    </span>
+                  ` : ''}
+                </div>
+                <p class="text-xs text-rose-300/80 mt-0.5 leading-relaxed">${item.detail}</p>
+                ${item.jev_signals_breakdown ? `
+                  <div class="mt-2 p-2 rounded bg-slate-900/90 border border-slate-800 text-[11px] text-slate-300 font-mono flex items-start gap-1.5">
+                    <span class="text-amber-400 font-bold shrink-0">Jev Signals:</span>
+                    <span class="text-slate-400">${item.jev_signals_breakdown}</span>
+                  </div>
+                ` : ''}
+                <div class="mt-2 text-[11px] text-cyan-300 font-mono">Action: ${item.action_required}</div>
               </div>
             `).join('')}
           </div>
