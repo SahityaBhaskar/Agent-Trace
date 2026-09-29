@@ -103,41 +103,66 @@ python -m agent_trace.cli analyze /path/to/your/repo --serve
 
 ## Jev System 1: Real-Time Change Intelligence
 
-At the heart of AgentTrace is **Jev by TypeSafe AI** — a high-speed, typed decision engine designed to evaluate code mutations in sub-second time (~400ms). Rather than waiting for heavy LLM inference to parse an entire PR diff, Jev inspects each AST-resolved code hunk and emits structured, typed telemetry that immediately populates the Causal Change Graph and Risk Engine.
+At the heart of AgentTrace is **Jev by TypeSafe AI** paired with **LSP-powered symbol graph extraction**. Rather than treating diff hunks as isolated text lines or waiting for slow, ungrounded LLMs, AgentTrace uses Language Server Protocols (via **Serena MCP**) and AST analysis to resolve exact code symbols and pull the full **Semantic Symbol Graph** (transitive callers, referencing symbols, and downstream consumers).
+
+AgentTrace then partitions these references into **handled callers** (updated in the PR) and **unattended callers** (untouched in the PR), feeding the symbol graph directly into **Jev System 1**. In ~400ms, Jev outputs strongly typed telemetry — classifying the change, scoring blast radius, detecting breaking risks, and catching omitted callers before any code is merged.
 
 ```
-                    ┌────────────────────────────────────────┐
-                    │               Raw Git Diff             │
-                    └───────────────────┬────────────────────┘
-                                        │
-                                        ▼
-                    ┌────────────────────────────────────────┐
-                    │   LiveGitEngine + AstAnalyzer (AST)    │
-                    └───────────────────┬────────────────────┘
-                                        │
-               ┌────────────────────────┴────────────────────────┐
-               ▼                                                 ▼
-┌───────────────────────────────┐               ┌─────────────────────────────────┐
-│     Jev System 1 (TypeSafe)   │               │   RepoGraph + Semantic Impact   │
-│  • 13 Change Classifications  │               │   • 649+ nodes, 1390+ edges     │
-│  • Blast Radius (1.0–5.0)     │               │   • Referencing symbol traces   │
-│  • Human Review Urgency (%)   │               │   • Transitive dependency depth │
-│  • Breaking Risk Detection    │               └────────────────┬────────────────┘
-│  • Omission Risk Detection    │                                │
-└──────────────┬────────────────┘                                │
-               │                                                 │
-               └────────────────────────┬────────────────────────┘
-                                        ▼
-                    ┌────────────────────────────────────────┐
-                    │      Risk & Attention Engine           │
-                    │   8-Rule Prioritized Review Queue      │
-                    └───────────────────┬────────────────────┘
-                                        ▼
-                    ┌────────────────────────────────────────┐
-                    │       Gemini System 2 Enrichment       │
-                    │   Architectural Flow & "Ask Why"       │
-                    └────────────────────────────────────────┘
+                         ┌────────────────────────────────────────┐
+                         │               Raw Git Diff             │
+                         └───────────────────┬────────────────────┘
+                                             │
+                                             ▼
+                         ┌────────────────────────────────────────┐
+                         │      DiffSymbolMapper + Serena MCP     │
+                         │   Language Server Protocol (LSP) + AST │
+                         └───────────────────┬────────────────────┘
+                                             │
+                                             ▼ Pull Symbol Graph
+                         ┌────────────────────────────────────────┐
+                         │      SemanticImpactGraphBuilder        │
+                         │   • Pull referencing symbols & callers │
+                         │   • 649+ nodes, 1390+ edges            │
+                         │   • Transitive dependency traversal    │
+                         └───────────────────┬────────────────────┘
+                                             │
+                                             ▼ Partition Callers
+                         ┌────────────────────────────────────────┐
+                         │     Handled vs. Unattended Callers     │
+                         │  • Handled: updated in current PR diff │
+                         │  • Unattended: untouched / orphaned    │
+                         └───────────────────┬────────────────────┘
+                                             │
+                                             ▼ Grounded Evaluation
+                         ┌────────────────────────────────────────┐
+                         │        Jev System 1 (TypeSafe AI)      │
+                         │  • 13 Typed Change Classifications     │
+                         │  • Quantitative Blast Radius (1.0–5.0) │
+                         │  • Omission Risk & Severity Detection  │
+                         │  • Breaking Risk & Human Review Need   │
+                         └───────────────────┬────────────────────┘
+                                             │
+                                             ▼
+                         ┌────────────────────────────────────────┐
+                         │         Risk & Attention Engine        │
+                         │   8-Rule Prioritized Review Queue      │
+                         └───────────────────┬────────────────────┘
+                                             │
+                                             ▼
+                         ┌────────────────────────────────────────┐
+                         │       Gemini System 2 Enrichment       │
+                         │   Architectural Flow & "Ask Why"       │
+                         └────────────────────────────────────────┘
 ```
+
+### Pulling the Symbol Graph via LSP (Serena MCP)
+
+Before evaluating risk, AgentTrace extracts deep semantic structure from the codebase:
+
+- **Language Server Protocol (LSP) via Serena MCP:** Queries native language servers over stdio for exact symbol definitions, types, and cross-file references (`find_referencing_symbols`, `get_symbols_overview`) with 0.98 confidence, with graceful fallback to Python AST and import graphs.
+- **Transitive Symbol Graph:** Traverses call hierarchies and import trees to build a 649+ node, 1390+ edge graph showing every symbol directly or transitively affected by the diff.
+- **Handled vs. Unattended Partitioning:** Automatically separates referencing symbols that the agent modified from those it forgot to update.
+- **Feeding Jev with Graph Context:** Passes `handled_callers` and `unattended_callers` straight into `JevClient.evaluate_hunk()`, enabling Jev to ground its omission detection and blast radius calculations in the actual dependency graph.
 
 ### Core Capabilities of Jev in AgentTrace
 
@@ -292,6 +317,8 @@ AgentTrace follows a deterministic-first, AI-augmented architecture. Every expla
 | **Agent Adapters** | Normalise JSONL transcripts from Claude Code, Cursor, or Generic agents into `SessionEvent` objects | `adapters.py` — pure Python |
 | **LiveGitEngine** | Extract raw diffs, parse hunks, resolve AST symbols, support 7 diff modes | `live_git.py` — subprocess git + AST |
 | **AstAnalyzer** | Python AST + regex fallback symbol extraction, semantic diff (added/removed/modified) | `ast_analyzer.py` — stdlib `ast` |
+| **SerenaClient** | Persistent MCP client for Language Server Protocol (LSP) semantic code intelligence (`find_referencing_symbols`, `get_symbols_overview`) | `serena_client.py` — stdio MCP / LSP |
+| **SemanticImpactGraphBuilder** | Pulls the transitive symbol graph across the codebase, partitions handled vs. unattended callers | `semantic_impact.py` — LSP + AST + RepoGraph |
 | **RepoGraph** | Build a call/import graph across the repository (nodes: File, Class, Function; edges: CALLS, IMPORTS, DEFINES) | `repo_graph.py` — AST-only, thread-safe cache |
 | **JevClient** | System 1: High-speed typed decision evaluation of each diff hunk (13 change classifications, blast radius scoring, breaking risk, human review urgency, omission detection) | `jev_client.py` — TypeSafe AI REST + deterministic fallback |
 | **CausalEngine** | Build the 4-column Causal Change Graph linking UserRequest → Investigation → Decision → CodeHunk → Risk/Concept | `causal_engine.py` |
